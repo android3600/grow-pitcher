@@ -1,0 +1,6 @@
+# 로컬 개발 도구/미리보기 설정
+.claude/
+
+# OS
+Thumbs.db
+.DS_Store

@@ -1,0 +1,2440 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>⚾ 지존투수 키우기 - MVP</title>
+
+<!-- 한글 픽셀(도트) 폰트 : Galmuri -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/quiple/galmuri/dist/galmuri.css" />
+
+<style>
+/* =========================================================
+   0. 전역 / 도트 감성 베이스
+   ========================================================= */
+:root{
+  --bg:#10131c;
+  --panel:#1d2333;
+  --panel2:#262d42;
+  --line:#0a0c12;
+  --ink:#e7ecf5;
+  --dim:#8b95ad;
+  --accent:#ffd23f;
+  --hp:#34d97b;
+  --hp-low:#ff5a5a;
+  --exp:#5ab0ff;
+  --gold:#ffcf3f;
+  --fast:#ff6b5a;
+  --curve:#5ab0ff;
+  /* 등급 색 */
+  --gS:#ffd23f; --gA:#ff6b5a; --gB:#b06bff; --gC:#5ab0ff; --gD:#8b95ad;
+}
+
+*{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+html,body{
+  margin:0; padding:0; height:100%;
+  background:#05070d;
+  font-family:'Galmuri11','Galmuri9',monospace;
+  color:var(--ink);
+  image-rendering:pixelated;
+  -webkit-font-smoothing:none;
+  overflow:hidden;
+}
+
+/* 9:16 세로형 캔버스 */
+#app{
+  position:relative;
+  width:100%;
+  max-width:430px;
+  height:100dvh;
+  max-height:calc(430px * 16 / 9);
+  margin:0 auto;
+  background:var(--bg);
+  display:flex;
+  flex-direction:column;
+  border-left:3px solid var(--line);
+  border-right:3px solid var(--line);
+  overflow:hidden;
+  user-select:none;
+}
+
+/* 투박한 픽셀 테두리 박스 */
+.box{
+  background:var(--panel);
+  border:3px solid var(--line);
+  box-shadow:inset -3px -3px 0 rgba(0,0,0,.45), inset 3px 3px 0 rgba(255,255,255,.06);
+}
+
+.btn{
+  font-family:inherit;
+  color:var(--ink);
+  background:var(--panel2);
+  border:3px solid var(--line);
+  box-shadow:inset -3px -3px 0 rgba(0,0,0,.5), inset 3px 3px 0 rgba(255,255,255,.08);
+  cursor:pointer;
+  padding:10px;
+  font-size:13px;
+  transition:transform .05s;
+}
+.btn:active{ transform:translate(2px,2px); box-shadow:inset 3px 3px 0 rgba(0,0,0,.5); }
+.btn:disabled{ opacity:.4; cursor:not-allowed; }
+
+/* =========================================================
+   1. 상단 HUD (재화 / 투수 스탯 / 요일)
+   ========================================================= */
+#hud{
+  display:flex; align-items:center; gap:6px;
+  padding:6px 8px; font-size:10px;
+  background:var(--line); color:var(--ink);
+  border-bottom:3px solid #000;
+}
+#hud .day{ color:var(--accent); font-size:11px; }
+#hud .sp{ flex:1; }
+#hud .chip{ display:flex; align-items:center; gap:3px; }
+#hud .exp{ color:var(--exp); }
+#hud .gold{ color:var(--gold); }
+#hud .stat{ color:var(--dim); }
+
+/* =========================================================
+   2. 타자(상단) 영역
+   ========================================================= */
+#batterArea{
+  padding:8px;
+  display:flex; flex-direction:column; gap:6px;
+}
+.batterTop{ display:flex; align-items:center; gap:8px; padding:8px; }
+.batterFace{ font-size:34px; line-height:1; filter:drop-shadow(2px 2px 0 #000); }
+.batterInfo{ flex:1; min-width:0; }
+.batterName{ font-size:14px; display:flex; align-items:center; gap:6px; }
+.tierTag{ font-size:10px; padding:1px 5px; border:2px solid #000; color:#000; }
+.batterStats{ display:flex; gap:10px; margin-top:5px; font-size:10px; }
+.batterStats .s{ display:flex; flex-direction:column; align-items:center; gap:1px; color:var(--dim); }
+.gradeLetter{ font-size:15px; font-weight:bold; }
+
+/* 전광판 (볼카운트/아웃/실점) */
+.scoreboard{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:7px 10px; font-size:11px;
+  background:#06210f;
+  border:3px solid var(--line);
+  box-shadow:inset 0 0 0 2px #0c3b1c;
+}
+.sbItem{ display:flex; align-items:center; gap:5px; color:#5cff9a; }
+.lamp{ width:11px; height:11px; border:2px solid #052; background:#0a3; box-shadow:0 0 0 2px #000 inset; }
+.lamp.on{ background:#ff3b3b; box-shadow:0 0 6px #ff3b3b, 0 0 0 2px #000 inset; }
+.runs{ color:#ff6b6b; font-size:13px; }
+
+/* =========================================================
+   3. 중앙 연출 영역
+   ========================================================= */
+#field{
+  position:relative;
+  flex:1;
+  margin:4px 8px;
+  background:
+    repeating-linear-gradient(0deg,#13351f 0 14px,#11301c 14px 28px);
+  border:3px solid var(--line);
+  overflow:hidden;
+}
+/* 다이아몬드(베이스 표시) */
+/* 다이아몬드: 왼쪽에 배치 (결과 글자와 안 겹치게) */
+#diamond{
+  position:absolute; left:24%; top:48%; width:64px; height:64px;
+  transform:translate(-50%,-50%); pointer-events:none; z-index:1;
+}
+/* 내야 흙 마름모 — 컨테이너 안에 딱 맞게(회전 사각형의 꼭짓점=베이스 위치) */
+#diamond::before{
+  content:""; position:absolute; inset:9px; transform:rotate(45deg); border-radius:3px;
+  background:linear-gradient(135deg,#b5824f,#6e4a28);
+  border:2px solid rgba(255,255,255,.55);
+  box-shadow:inset 0 0 5px rgba(0,0,0,.45);
+}
+#diamond .base{
+  position:absolute; width:12px; height:12px; border-radius:2px; z-index:2;
+  background:#eef2f8; border:2px solid #33405e;
+}
+#diamond .base.b2{ top:-6px; left:50%; margin-left:-6px; }      /* 2루 (위 꼭짓점) */
+#diamond .base.b1{ top:50%; right:-6px; margin-top:-6px; }      /* 1루 (오른 꼭짓점) */
+#diamond .base.b3{ top:50%; left:-6px; margin-top:-6px; }       /* 3루 (왼 꼭짓점) */
+#diamond .home{ bottom:-6px; left:50%; margin-left:-5px; z-index:2;
+  width:10px; height:10px; transform:rotate(45deg);
+  background:#fff; border:2px solid #aaa; }
+#diamond .base.on{
+  background:#ffd23f; border-color:#fff;
+  box-shadow:0 0 12px #ffd23f;
+  animation:basePulse .8s ease-in-out infinite;
+}
+@keyframes basePulse{ 0%,100%{ transform:scale(1); } 50%{ transform:scale(1.22); } }
+#diamond .runner{
+  display:none; position:absolute; left:50%; top:-16px; transform:translateX(-50%);
+  font-size:13px; filter:drop-shadow(1px 1px 0 #000);
+}
+#diamond .base.on .runner{ display:block; animation:runnerBob .5s ease-in-out infinite; }
+@keyframes runnerBob{ 0%,100%{ transform:translateX(-50%) translateY(0); } 50%{ transform:translateX(-50%) translateY(-3px); } }
+/* 투구 궤적 공 */
+#ball{
+  position:absolute; left:50%; bottom:14%;
+  width:16px; height:16px; margin-left:-8px;
+  background:#fff; border:2px solid #000; border-radius:50%;
+  box-shadow:0 0 6px #fff;
+  opacity:0;
+}
+.pitch-fast{ animation:flyFast .28s ease-in forwards; }
+.pitch-curve{ animation:flyCurve .42s ease-in-out forwards; }
+@keyframes flyFast{
+  0%{ opacity:1; bottom:14%; transform:scale(1.4); }
+  100%{ opacity:1; bottom:74%; transform:scale(.5); }
+}
+@keyframes flyCurve{
+  0%{ opacity:1; bottom:14%; left:50%; transform:scale(1.4); }
+  55%{ left:34%; }
+  100%{ opacity:1; bottom:74%; left:60%; transform:scale(.5); }
+}
+
+/* 결과 팝업 (오른쪽에 배치 → 왼쪽 다이아몬드와 안 겹침) */
+#popup{
+  position:absolute; inset:0 14px 0 auto; width:60%;
+  display:flex; flex-direction:column; align-items:flex-end; justify-content:center;
+  text-align:right; pointer-events:none; gap:6px;
+}
+#popup .big{
+  font-size:30px; text-shadow:3px 3px 0 #000;
+  opacity:0;
+}
+#popup .sub{ font-size:13px; color:var(--ink); text-shadow:2px 2px 0 #000; opacity:0; }
+.show-pop .big{ animation:popIn .45s ease-out forwards; }
+.show-pop .sub{ animation:popIn .45s .08s ease-out forwards; }
+@keyframes popIn{
+  0%{ opacity:0; transform:scale(2.4) rotate(-6deg); }
+  40%{ opacity:1; transform:scale(.9) rotate(2deg); }
+  100%{ opacity:1; transform:scale(1) rotate(0); }
+}
+
+/* 임팩트 버스트(이모지 팝) */
+.fxBurst{ position:absolute; left:50%; top:42%; transform:translate(-50%,-50%);
+  font-size:42px; pointer-events:none; z-index:4; filter:drop-shadow(2px 2px 0 #000);
+  animation:fxPop .75s ease-out forwards; }
+@keyframes fxPop{
+  0%{ opacity:0; transform:translate(-50%,-50%) scale(.3) rotate(-12deg); }
+  30%{ opacity:1; transform:translate(-50%,-50%) scale(1.35) rotate(4deg); }
+  100%{ opacity:0; transform:translate(-50%,-90%) scale(1.5); }
+}
+/* 카메라 펀치(줌) */
+.punch{ animation:camPunch .34s ease-out; }
+.punchBig{ animation:camPunchBig .4s ease-out; }
+@keyframes camPunch{ 0%{ transform:scale(1);} 35%{ transform:scale(1.05);} 100%{ transform:scale(1);} }
+@keyframes camPunchBig{ 0%{ transform:scale(1);} 30%{ transform:scale(1.1);} 100%{ transform:scale(1);} }
+/* 홈런 화면 번쩍 */
+.hrFlash{ position:absolute; inset:0; z-index:5; pointer-events:none;
+  background:radial-gradient(circle,#fff,#ffd23f00 70%); animation:hrFlashAnim .32s ease-out forwards; }
+@keyframes hrFlashAnim{ 0%{ opacity:.9; } 100%{ opacity:0; } }
+/* 강한 흔들림 */
+.shakeBig{ animation:shakeBig .4s linear; }
+@keyframes shakeBig{
+  0%,100%{ transform:translate(0,0); }
+  15%{ transform:translate(-9px,5px); } 30%{ transform:translate(9px,-5px); }
+  45%{ transform:translate(-8px,-6px); } 60%{ transform:translate(8px,6px); }
+  75%{ transform:translate(-5px,3px); } 90%{ transform:translate(5px,-3px); }
+}
+
+/* 히트스톱(번쩍) + 흔들림 */
+.flash{ animation:flash .18s steps(1) 2; }
+@keyframes flash{ 0%{ filter:brightness(3); } 100%{ filter:brightness(1); } }
+.shake{ animation:shake .35s linear; }
+@keyframes shake{
+  0%,100%{ transform:translate(0,0); }
+  20%{ transform:translate(-6px,3px); }
+  40%{ transform:translate(6px,-3px); }
+  60%{ transform:translate(-5px,-4px); }
+  80%{ transform:translate(5px,4px); }
+}
+
+/* 슬롯머신 오버레이 */
+#slot{
+  position:absolute; inset:0;
+  background:rgba(3,5,10,.92);
+  display:none; flex-direction:column; align-items:center; justify-content:center; gap:10px;
+  z-index:5;
+}
+#slot.on{ display:flex; }
+.slotTitle{ font-size:13px; color:var(--accent); }
+.reels{ display:flex; gap:6px; }
+.reel{
+  width:54px; height:60px; font-size:34px;
+  display:flex; align-items:center; justify-content:center;
+  background:#0d1422; border:3px solid var(--line);
+  box-shadow:inset 0 0 0 2px #2a3450;
+}
+.slotResult{ font-size:18px; text-shadow:2px 2px 0 #000; min-height:24px; }
+.slotReward{ font-size:13px; color:var(--ink); min-height:18px; }
+.jackpot{ animation:jackpot .5s linear infinite; }
+@keyframes jackpot{ 0%,100%{ filter:hue-rotate(0); } 50%{ filter:hue-rotate(180deg) brightness(1.4); } }
+
+/* =========================================================
+   4. 하단 투수 영역
+   ========================================================= */
+#pitcherArea{ padding:8px; display:flex; flex-direction:column; gap:7px; }
+
+.pitcherRow{ display:flex; align-items:center; gap:10px; }
+/* 투수 등 뒤 도트 캐릭터 */
+.pitcher{
+  width:60px; height:64px; position:relative; flex:0 0 60px;
+}
+.px{ position:absolute; image-rendering:pixelated; }
+.cap{ left:18px; top:2px; width:24px; height:8px; background:#2b4cff; border:2px solid #000; }
+.head{ left:20px; top:9px; width:20px; height:16px; background:#f2c79a; border:2px solid #000; }
+.body{ left:12px; top:24px; width:36px; height:26px; background:#e8edf5; border:2px solid #000; }
+.num{ left:24px; top:30px; color:#1d2333; font-size:11px; }
+.armL{ left:6px; top:26px; width:8px; height:18px; background:#e8edf5; border:2px solid #000; }
+.armR{ left:46px; top:26px; width:8px; height:18px; background:#e8edf5; border:2px solid #000; }
+.legL{ left:18px; top:50px; width:9px; height:12px; background:#37406b; border:2px solid #000; }
+.legR{ left:33px; top:50px; width:9px; height:12px; background:#37406b; border:2px solid #000; }
+
+.hpWrap{ flex:1; }
+.hpLabel{ font-size:10px; color:var(--dim); display:flex; justify-content:space-between; margin-bottom:3px; }
+.hpBar{ display:flex; gap:3px; }
+.hpCell{ flex:1; height:16px; background:#0a0c12; border:2px solid #000; }
+.hpCell.full{ background:var(--hp); box-shadow:inset 0 3px 0 rgba(255,255,255,.25); }
+.hpCell.low{ background:var(--hp-low); }
+.dischargeTag{ margin-top:4px; font-size:10px; color:var(--hp-low); min-height:14px; }
+
+.pitchBtns{ display:flex; gap:8px; }
+.pitchBtns .btn{ flex:1; padding:14px 6px; font-size:15px; display:flex; flex-direction:column; gap:4px; align-items:center; }
+.pitchBtns .fast{ border-color:#000; background:linear-gradient(#3a2320,#241413); color:var(--fast); }
+.pitchBtns .curve{ border-color:#000; background:linear-gradient(#1b2940,#121d2e); color:var(--curve); }
+.pitchBtns .prob{ font-size:10px; color:var(--dim); }
+
+/* =========================================================
+   5. 성장(월요일) 화면 오버레이
+   ========================================================= */
+#growth{
+  position:absolute; inset:0; z-index:8;
+  background:var(--bg);
+  display:none; flex-direction:column; padding:14px; gap:12px;
+  overflow:auto;
+}
+#growth.on{ display:flex; }
+#growth h2{ text-align:center; color:var(--accent); font-size:18px; margin:6px 0; }
+.trainCard{ display:flex; align-items:center; gap:10px; padding:12px; }
+.trainCard .ico{ font-size:26px; }
+.trainCard .info{ flex:1; }
+.trainCard .info .t{ font-size:13px; }
+.trainCard .info .d{ font-size:10px; color:var(--dim); margin-top:3px; }
+.trainCard .cost{ font-size:11px; color:var(--exp); }
+
+/* 토스트 / 일과 종료 배너 */
+#banner{
+  position:absolute; left:0; right:0; top:46%; z-index:9;
+  text-align:center; pointer-events:none; display:none;
+}
+#banner.on{ display:block; animation:popIn .4s ease-out; }
+#banner .t{ font-size:24px; color:var(--accent); text-shadow:3px 3px 0 #000; }
+#banner .d{ font-size:13px; color:var(--ink); text-shadow:2px 2px 0 #000; margin-top:6px; }
+
+.tiny{ font-size:9px; color:var(--dim); }
+#resetBtn{ font-size:9px; padding:3px 6px; }
+
+/* =========================================================
+   ★ DESIGN REFRESH (레퍼런스 기반: 레드 타자 / 블루 투수)
+   ========================================================= */
+/* 스타디움 노을 배경 */
+#app{ background:linear-gradient(180deg,#3a1f5c 0%,#5b2a6b 13%,#7a2f5a 23%,#1a2740 46%,#0b1320 100%); }
+#hud{ background:linear-gradient(#11151f,#070a11); }
+#batterArea{ gap:0; }
+
+/* 캐릭터 패널 공통 */
+.charPanel{ display:flex; align-items:center; gap:10px; padding:9px 11px;
+  border:3px solid #000; border-radius:4px; position:relative; }
+.charPanel.red{ background:linear-gradient(135deg,#7a1320,#380a11 72%);
+  box-shadow:inset 0 0 0 2px #ff5a4d44, 0 0 12px #ff2d2d33, inset -3px -3px 0 rgba(0,0,0,.5); }
+.charPanel.blue{ background:linear-gradient(135deg,#10396e,#0a1a38 72%);
+  box-shadow:inset 0 0 0 2px #4ea0ff44, 0 0 12px #2d6bff33, inset -3px -3px 0 rgba(0,0,0,.5); }
+.charFace{ font-size:38px; line-height:1; filter:drop-shadow(2px 2px 0 #000); flex:0 0 auto; }
+.pitcher{ flex:0 0 60px; width:60px; height:64px; position:relative; }
+.charInfo{ flex:1; min-width:0; }
+.charName{ display:flex; align-items:center; gap:6px; font-size:14px; }
+.sideTag{ font-size:9px; padding:2px 6px; border:2px solid #000; color:#fff; }
+.sideTag.red{ background:#d12d2d; }
+.sideTag.blue{ background:#2d6bd1; }
+.tierTag{ color:#000; }
+#batterDesc{ margin:3px 0; }
+
+/* 수치 게이지 바 */
+.statBars{ margin-top:6px; display:flex; flex-direction:column; gap:4px; }
+.sBar{ display:flex; align-items:center; gap:6px; font-size:10px; }
+.sName{ flex:0 0 30px; width:30px; color:#cdd6e6; }
+.sTrack{ flex:1; height:9px; background:#05080f; border:2px solid #000;
+  box-shadow:inset 0 0 0 1px #ffffff14; overflow:hidden; }
+.sFill{ display:block; height:100%; width:0; transition:width .5s cubic-bezier(.2,.8,.2,1); }
+.f-con{ background:linear-gradient(#ff8a5a,#ff5a2d); }
+.f-pow{ background:linear-gradient(#ff6a6a,#e01e1e); }
+.f-eye{ background:linear-gradient(#ff9ad1,#d6379a); }
+.f-vel{ background:linear-gradient(#ff7a5a,#ff3d2d); }
+.f-ctl{ background:linear-gradient(#7ab8ff,#2d7bff); }
+.sVal{ flex:0 0 28px; width:28px; text-align:right; color:#fff; font-size:11px; }
+.gradeLetter{ width:14px; text-align:center; font-size:13px; }
+
+/* 전광판 LED */
+.scoreboard{ margin-top:7px; background:linear-gradient(#0a0f08,#04130a);
+  box-shadow:inset 0 0 10px #000, inset 0 0 0 2px #1c5e30; border:3px solid #000; border-radius:3px; }
+
+/* 필드 노을/잔디 (살짝 축소) */
+#field{ border:3px solid #000; flex:1 1 0; min-height:84px; max-height:128px; margin:3px 8px;
+  background:linear-gradient(180deg,#5a2e6e 0 16%,#7a3a5e 16% 28%,#14401f 28% 100%); }
+/* 투수영역 확장 (콘텐츠 키움) */
+#pitcherArea .charPanel.blue{ padding:11px 11px; }
+#pitcherArea .pitcher{ flex:0 0 66px; width:66px; height:70px; }
+#pitcherArea .charInfo .sTrack{ height:11px; }
+#pitcherArea .charInfo .sBar{ font-size:11px; }
+#pitcherArea .charInfo .sVal{ font-size:13px; }
+#pitcherArea .charInfo .hpCell{ height:15px; }
+#pitcherArea .charName{ font-size:15px; }
+
+/* 투수 통산 기록 칩 */
+.pitStat{ margin-left:auto; font-size:9px; color:#bcd2f0; white-space:nowrap; }
+.pitStat b{ color:#fff; }
+#eraVal{ color:#ffd23f; }
+
+/* VS 배지 */
+#vsBadge{ align-self:center; margin:-15px 0 -11px; z-index:6;
+  font-size:32px; font-style:italic; font-weight:bold; color:#ffd23f;
+  text-shadow:0 0 8px #ff8c1a, 3px 3px 0 #000, -2px -2px 0 #b23b00;
+  -webkit-text-stroke:1px #000; animation:vspulse 1.4s ease-in-out infinite; }
+@keyframes vspulse{ 0%,100%{ transform:scale(1); } 50%{ transform:scale(1.13); filter:brightness(1.3); } }
+
+/* HP 게이지 (이제 블루 박스 안: 구속/제구 아래) */
+.charInfo .hpWrap{ flex:none; width:100%; margin-top:5px; }
+.charInfo .hpLabel{ font-size:9px; margin-bottom:2px; }
+.charInfo .hpCell{ height:12px; }
+.hpCell.full{ background:linear-gradient(#5dffa0,#1fae5e); }
+.hpCell.low{ background:linear-gradient(#ff8a8a,#e03030); }
+.hpCell.over{ background:linear-gradient(#ffe98a,#ffb31f); box-shadow:0 0 5px #ffd23f; }
+.pitInfoRow{ display:flex; align-items:center; justify-content:space-between; gap:6px; margin-top:4px; }
+.pitInfoRow .dischargeTag{ margin:0; font-size:9px; text-align:right; }
+/* 하단 영역 컴팩트화 (버튼 잘림 방지) */
+#pitcherArea{ padding:4px 8px 6px; gap:5px; }
+.charPanel{ padding:6px 9px; }
+.pitchBtns .btn{ padding:9px 6px; font-size:15px; }
+/* 전체 세로 컴팩트화 */
+#topbar{ padding:4px 6px 0; }
+.vsPanel{ padding:5px 7px; }
+.vpFace{ font-size:26px; }
+#batterArea{ padding:6px 8px 0; }
+.charPanel.red .statBars{ gap:3px; }
+.statBars{ gap:3px; }
+.midRow{ margin-top:5px; }
+.questPanel{ margin-top:5px; padding:5px 9px; }
+#resbar{ padding:3px 10px; }
+
+/* 투구 버튼 글로우 */
+.pitchBtns{ margin-top:8px; }
+.pitchBtns .btn{ border-radius:4px; font-size:16px; }
+.pitchBtns .fast{ background:linear-gradient(#ff6b3d,#b21f10);
+  box-shadow:0 0 12px #ff5a2d55, inset -3px -3px 0 rgba(0,0,0,.45), inset 3px 3px 0 #ffffff2a;
+  color:#fff; text-shadow:2px 2px 0 #000; }
+.pitchBtns .curve{ background:linear-gradient(#3d8bff,#103fb2);
+  box-shadow:0 0 12px #2d7bff55, inset -3px -3px 0 rgba(0,0,0,.45), inset 3px 3px 0 #ffffff2a;
+  color:#fff; text-shadow:2px 2px 0 #000; }
+.pitchBtns .prob{ color:#ffe9b0; }
+
+/* 슬롯 오버레이 골드 프레임 */
+.reels{ padding:10px 12px; background:linear-gradient(#2a1c08,#100a02);
+  border:3px solid #b5862e; border-radius:6px; box-shadow:0 0 16px #ffb33344, inset 0 0 0 2px #ffd98a; }
+.reel{ background:linear-gradient(#f3ecd6,#cdbf97); color:#000; border:3px solid #6b4e16; }
+.slotTitle{ font-size:14px; text-shadow:0 0 6px #ffb133; }
+#slotConfirm{ margin-top:6px; font-size:14px; padding:9px 26px;
+  background:linear-gradient(#ffcf3f,#c8920f); color:#1a1208; border:3px solid #000; border-radius:5px;
+  box-shadow:0 0 12px #ffd23f66, inset -2px -2px 0 rgba(0,0,0,.35);
+  animation:confirmPulse .9s ease-in-out infinite; }
+@keyframes confirmPulse{ 0%,100%{ transform:scale(1);} 50%{ transform:scale(1.06);} }
+
+/* =========================================================
+   ★ 상단 전광판 / NEXT / 퀘스트 / 슬롯 배럴
+   ========================================================= */
+/* --- 상단 3패널 전광판 --- */
+#topbar{ display:flex; align-items:stretch; gap:0; padding:6px 6px 0; }
+.vsPanel{ flex:1; display:flex; align-items:center; gap:7px; padding:6px 8px;
+  border:3px solid #000; border-radius:4px; min-width:0; }
+.vsPanel.red{ background:linear-gradient(135deg,#a01828,#4a0a12); box-shadow:inset 0 0 0 2px #ff5a4d55, 0 0 8px #ff2d2d40; }
+.vsPanel.blue{ background:linear-gradient(135deg,#16459a,#0a1c44); box-shadow:inset 0 0 0 2px #4ea0ff55, 0 0 8px #2d6bff40; }
+.vpFace{ font-size:30px; flex:0 0 auto; filter:drop-shadow(2px 2px 0 #000); }
+.vpInfo{ flex:1; min-width:0; }
+.vpInfo.r{ text-align:right; }
+.vpLv{ font-size:9px; color:#ffd23f; }
+.vpName{ font-size:12px; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.vpPow{ font-size:10px; color:#ffe1a0; margin-top:1px; }
+.powTrack{ height:6px; background:#05080f; border:2px solid #000; margin-top:3px; overflow:hidden; }
+.powFill{ display:block; height:100%; width:60%; }
+.powFill.red{ background:linear-gradient(#ffd23f,#ff7a1a); }
+.powFill.blue{ background:linear-gradient(#ffd23f,#ff7a1a); }
+
+.vsCenter{ flex:0 0 96px; width:96px; text-align:center; display:flex; flex-direction:column;
+  align-items:center; justify-content:center; gap:2px; padding:4px 2px;
+  background:linear-gradient(#0a0d14,#04060c); border:3px solid #000; border-radius:4px;
+  margin:0 -1px; box-shadow:inset 0 0 8px #000; }
+.vcDay{ font-size:9px; color:#9fb0c8; }
+.vcScore{ font-size:24px; color:#fff; line-height:1; text-shadow:0 0 6px #ffb13355; }
+.vcScore .vcSlash{ font-size:8px; color:#ff6b6b; margin-left:3px; }
+.vcCount .cntRow{ display:flex; align-items:center; gap:3px; font-size:9px; color:#5cff9a; }
+.vcCount .lamp{ width:9px; height:9px; }
+.vcTeam{ font-size:9px; color:#fff; }
+
+/* 슬림 자원 바 */
+#resbar{ display:flex; align-items:center; gap:8px; padding:4px 10px; font-size:10px;
+  background:var(--line); border-bottom:3px solid #000; }
+#resbar .exp{ color:var(--exp); } #resbar .gold{ color:var(--gold); } #resbar .stat{ color:var(--dim); }
+#resbar .sp{ flex:1; }
+#resbar #resetBtn{ font-size:9px; padding:3px 6px; }
+#hudTrait{ cursor:pointer; text-decoration:underline dotted; }
+/* 특성 설명 토스트 */
+#traitToast{ position:absolute; left:50%; top:84px; transform:translateX(-50%); z-index:14;
+  min-width:200px; max-width:86%; text-align:center; padding:10px 14px; cursor:pointer;
+  background:linear-gradient(#2a2238,#15111f); border:3px solid #b5862e; border-radius:6px;
+  box-shadow:0 0 16px #000a, inset 0 0 0 2px #ffd98a55; animation:popIn .25s ease-out; }
+#traitToast .ttName{ font-size:13px; color:var(--accent); }
+#traitToast .ttDesc{ font-size:11px; color:#dfe6f2; margin-top:5px; line-height:1.4; }
+
+/* --- 중간 행: 주자 + NEXT --- */
+.midRow{ display:flex; gap:6px; margin-top:7px; align-items:stretch; }
+.basePanel{ flex:0 0 auto; display:flex; align-items:center; gap:5px; padding:6px 9px;
+  font-size:11px; color:#5cff9a; background:linear-gradient(#0a0f08,#04130a);
+  border:3px solid #000; border-radius:3px; box-shadow:inset 0 0 0 2px #1c5e30; }
+.nextPanel{ flex:1; display:flex; align-items:center; gap:6px; padding:5px 8px;
+  background:linear-gradient(#1d2333,#11151f); border:3px solid #000; border-radius:3px; }
+.npTitle{ font-size:10px; color:#ffd23f; flex:0 0 auto; }
+.npCards{ display:flex; gap:5px; flex:1; }
+.npCard{ flex:1; text-align:center; font-size:9px; padding:3px 2px; border:2px solid #000;
+  background:#0e1320; border-radius:3px; color:#cdd6e6; min-width:0; }
+.npCard.onDeck{ background:linear-gradient(#7a1320,#3a0a12); box-shadow:0 0 6px #ff2d2d66; color:#fff; }
+.npCard .npName{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.npCard .npGrade{ font-size:11px; font-weight:bold; }
+
+/* --- 퀘스트 패널 --- */
+.questPanel{ margin-top:6px; padding:6px 9px; background:linear-gradient(#1a1f2e,#10141d);
+  border:3px solid #000; border-radius:3px; }
+.qpTitle{ font-size:10px; color:#ffd23f; margin-bottom:4px; }
+.qItem{ display:flex; align-items:center; gap:6px; font-size:10px; padding:2px 0; color:#cdd6e6; }
+.qItem .qChk{ flex:0 0 14px; text-align:center; }
+.qItem .qLabel{ flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.qItem .qProg{ color:#9fb0c8; }
+.qItem .qRwd{ color:#5ab0ff; flex:0 0 auto; }
+.qItem.done{ color:#5cff9a; }
+.qItem.done .qLabel{ text-decoration:line-through; opacity:.8; }
+
+/* --- 슬롯 배럴 머신 --- */
+.slotMachine{ display:flex; align-items:center; justify-content:center; gap:8px; }
+.slotEye{ flex:0 0 auto; text-align:center; padding:6px; border:3px solid #6b4e16;
+  border-radius:50%; width:62px; height:62px; display:flex; flex-direction:column;
+  align-items:center; justify-content:center;
+  background:radial-gradient(circle,#3a1d5e,#160a26); box-shadow:0 0 10px #a35cff66; }
+.slotEye .eyeIco{ font-size:18px; }
+.slotEye .eyeNum{ font-size:11px; color:#d9b3ff; }
+.slotEye .eyeLbl{ font-size:7px; color:#b89adf; }
+.barrel{ position:relative; padding:8px 22px 8px 10px;
+  background:linear-gradient(#3a2a10,#1a1206); border:4px solid #b5862e; border-radius:10px;
+  box-shadow:0 0 18px #ffb33355, inset 0 0 0 2px #ffd98a; }
+.barrel .reels{ border:none; box-shadow:none; background:none; padding:0; }
+.lever{ position:absolute; right:-14px; top:50%; transform:translateY(-50%);
+  width:8px; height:46px; background:linear-gradient(#caa64a,#7a5a18); border:2px solid #4a3410; border-radius:4px; }
+.lever .leverBall{ position:absolute; top:-10px; left:-6px; width:18px; height:18px; border-radius:50%;
+  background:radial-gradient(circle at 35% 30%,#ff8a8a,#c01818); border:2px solid #4a0a0a; }
+.lever.pull{ animation:leverPull .25s ease-out; }
+@keyframes leverPull{ 0%{ transform:translateY(-50%) rotate(0); } 50%{ transform:translateY(-40%) rotate(14deg); } 100%{ transform:translateY(-50%) rotate(0); } }
+.rarityTable{ flex:0 0 auto; display:flex; flex-direction:column; gap:2px;
+  background:linear-gradient(#1a1426,#0d0a16); border:2px solid #6b4e16; border-radius:4px; padding:4px; }
+.rt{ display:flex; justify-content:space-between; gap:8px; font-size:9px; padding:1px 4px; }
+.rt span{ font-weight:bold; } .rt b{ color:#fff; }
+.rt-legend span{ color:#ffd23f; } .rt-epic span{ color:#b06bff; }
+.rt-rare span{ color:#5ab0ff; } .rt-magic span{ color:#ff6b5a; } .rt-normal span{ color:#8b95ad; }
+
+/* --- 월요일 랜덤 상점 --- */
+.shopHead{ display:flex; align-items:center; justify-content:space-between;
+  font-size:14px; color:var(--accent); margin:8px 0 4px; }
+.shopHead .shopGold{ font-size:11px; color:var(--gold); }
+#shopList{ display:flex; flex-direction:column; gap:6px; }
+.shopCard{ display:flex; align-items:center; gap:10px; padding:8px 10px;
+  background:linear-gradient(135deg,#26203a,#15111f); border:3px solid #000; border-radius:5px;
+  box-shadow:inset 0 0 0 2px #5a4a8a55; }
+.shopCard .siIco{ font-size:26px; flex:0 0 auto; filter:drop-shadow(1px 1px 0 #000); }
+.shopCard .siInfo{ flex:1; min-width:0; }
+.shopCard .siName{ font-size:12px; color:#fff; }
+.shopCard .siDesc{ font-size:9px; color:#aeb8cc; margin-top:2px; line-height:1.3; }
+.shopCard .siBuy{ flex:0 0 auto; font-family:inherit; cursor:pointer; text-align:center;
+  background:linear-gradient(#ffcf3f,#c8920f); color:#1a1208; border:3px solid #000;
+  border-radius:4px; padding:7px 9px; font-size:11px;
+  box-shadow:inset -2px -2px 0 rgba(0,0,0,.35); }
+.shopCard .siBuy:active{ transform:translate(2px,2px); }
+.shopCard.ticket{ box-shadow:inset 0 0 0 2px #5aa0ff66; }
+.shopCard.coupon{ box-shadow:inset 0 0 0 2px #ffd23f88, 0 0 8px #ffd23f44; }
+.shopCard .siBuy.cant{ background:linear-gradient(#5a5a5a,#3a3a3a); color:#999; }
+
+/* --- 각성한(엘리트) 타자 연출 --- */
+.charPanel.awakened{ animation:awakePulse .7s ease-in-out infinite; }
+@keyframes awakePulse{
+  0%,100%{ box-shadow:inset 0 0 0 2px #ff5a5a, 0 0 14px #ff0000aa, inset -3px -3px 0 rgba(0,0,0,.45); }
+  50%{ box-shadow:inset 0 0 0 2px #ffd0d0, 0 0 24px #ff0000, inset -3px -3px 0 rgba(0,0,0,.45); }
+}
+.awakeTag{ color:#ff3b3b; font-weight:bold; text-shadow:0 0 6px #ff0000, 1px 1px 0 #000;
+  animation:awakeBlink .5s steps(1) infinite; }
+@keyframes awakeBlink{ 0%,100%{ opacity:1; } 50%{ opacity:.45; } }
+.fxBurst.awaken{ font-size:50px; }
+
+/* --- 슬림 전광판 --- */
+#scorebar{ display:flex; align-items:center; gap:8px; padding:6px 10px; font-size:11px;
+  background:linear-gradient(#0a0f08,#04130a); border-bottom:3px solid #000;
+  box-shadow:inset 0 0 10px #000, inset 0 -2px 0 #1c5e30; color:#5cff9a; }
+#scorebar .sbDay{ color:var(--accent); font-size:11px; }
+#scorebar .sbTeam{ color:#fff; }
+#scorebar .sbSp{ flex:1; }
+/* OUT/실점 (초록 박스 안) */
+.basePanel{ flex-direction:column; align-items:flex-start; gap:4px; padding:6px 11px; }
+.sbOut{ display:flex; align-items:center; gap:3px; color:#5cff9a; }
+.sbOut .lamp{ width:11px; height:11px; }
+.sbRuns{ color:#ff6b6b; } .sbRuns b{ font-size:14px; }
+
+/* --- 팀 엠블럼(로고형 배지) --- */
+.teamLogo{ width:48px; height:48px; border-radius:11px; border:3px solid #000;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  box-shadow:inset -2px -2px 0 rgba(0,0,0,.45), inset 2px 2px 0 rgba(255,255,255,.28), 0 0 6px rgba(0,0,0,.5); }
+.teamLogo .tlEmoji{ font-size:21px; line-height:1; filter:drop-shadow(1px 1px 0 #000); }
+.teamLogo .tlShort{ font-size:9px; color:#fff; font-weight:bold; text-shadow:1px 1px 0 #000; margin-top:1px; }
+
+/* --- 투수 생성 화면 --- */
+#create{ position:absolute; inset:0; z-index:12; display:none; flex-direction:column;
+  align-items:center; justify-content:center; gap:14px; padding:18px;
+  background:linear-gradient(180deg,#1a1230,#0a0814); }
+#create.on{ display:flex; }
+#create h2{ color:var(--accent); font-size:20px; text-shadow:0 0 8px #ffb13355; margin:0; }
+.createCard{ width:100%; display:flex; align-items:center; gap:14px; padding:16px;
+  background:linear-gradient(135deg,#16459a,#0a1c44); border:3px solid #000; border-radius:6px;
+  box-shadow:inset 0 0 0 2px #4ea0ff55, 0 0 14px #2d6bff44; }
+.createFace{ font-size:52px; filter:drop-shadow(2px 2px 0 #000); }
+.createStats{ flex:1; display:flex; flex-direction:column; gap:7px; }
+.createStats .sName{ color:#cdd6e6; }
+.createStats .sVal{ font-size:14px; }
+.traitBox{ width:100%; display:flex; align-items:center; gap:12px; padding:12px 14px;
+  background:linear-gradient(135deg,#3a1d5e,#160a26); border:3px solid #6b4e16; border-radius:6px;
+  box-shadow:0 0 12px #a35cff44; }
+.traitBox .tbIco{ font-size:34px; filter:drop-shadow(2px 2px 0 #000); }
+.traitBox .tbName{ font-size:15px; color:#ffd23f; }
+.traitBox .tbDesc{ font-size:11px; color:#cdd6e6; margin-top:3px; }
+.createBtns{ width:100%; display:flex; flex-direction:column; gap:10px; margin-top:4px; }
+#rollBtn{ font-size:17px; padding:14px; background:linear-gradient(#ff8a3d,#c0531a);
+  color:#fff; text-shadow:2px 2px 0 #000; box-shadow:0 0 12px #ff8a3d55, inset -3px -3px 0 rgba(0,0,0,.4); }
+#startSeasonBtn{ font-size:16px; padding:13px; background:linear-gradient(#3d8bff,#103fb2);
+  color:#fff; text-shadow:2px 2px 0 #000; box-shadow:0 0 12px #2d7bff55, inset -3px -3px 0 rgba(0,0,0,.4); }
+.rolling{ animation:rollShake .25s linear infinite; }
+@keyframes rollShake{ 0%,100%{ transform:translateX(0); } 25%{ transform:translateX(-3px); } 75%{ transform:translateX(3px); } }
+
+/* === 슬롯머신 전체화면 레이어 팝업 === */
+#slot{ position:absolute; inset:0; z-index:11; padding:16px;
+  background:rgba(3,5,10,.86); display:none; align-items:center; justify-content:center;
+  flex-direction:row; }   /* 모달은 .slotModal이 담당 */
+#slot.on{ display:flex; }
+.slotModal{ display:flex; flex-direction:column; align-items:center; gap:10px;
+  width:100%; max-width:400px;
+  padding:16px 12px; background:linear-gradient(#241a10,#120c06);
+  border:4px solid #b5862e; border-radius:10px;
+  box-shadow:0 0 26px #000c, 0 0 18px #ffb33355, inset 0 0 0 2px #ffd98a; }
+.slotModal .slotMachine{ flex-wrap:wrap; justify-content:center; gap:8px; }
+.slotModal .slotTitle{ font-size:15px; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ===== 상단 슬림 전광판 ===== -->
+  <div id="scorebar">
+    <span class="sbDay" id="hudDay">1주차 화요일</span>
+    <span class="sbSp"></span>
+    <span class="sbTeam" id="hudTeam">🆚 --</span>
+  </div>
+
+  <!-- 슬림 자원 바 -->
+  <div id="resbar">
+    <span class="exp">EXP <b id="hudExp">0</b></span>
+    <span class="gold">GOLD <b id="hudGold">0</b></span>
+    <span class="stat">🔥<b id="hudVel">55</b></span>
+    <span class="stat">🎯<b id="hudCon">55</b></span>
+    <span id="hudTrait" style="color:var(--accent);"></span>
+    <span class="sp"></span>
+    <button class="btn" id="resetBtn">초기화</button>
+  </div>
+
+  <!-- ===== 타자 영역 (RED) ===== -->
+  <div id="batterArea">
+    <div class="charPanel red" id="batterPanel">
+      <div class="charFace" id="batterFace">🦍</div>
+      <div class="charInfo">
+        <div class="charName">
+          <span class="sideTag red">타자</span>
+          <span id="batterName">오스틴</span>
+          <span class="tierTag" id="tierTag">S</span>
+        </div>
+        <div class="tiny" id="batterDesc">「공포의 홈런 타자」</div>
+        <div class="statBars">
+          <div class="sBar"><span class="sName">컨택</span><span class="sTrack"><i class="sFill f-con" id="barContact"></i></span><span class="sVal" id="valContact">85</span><span class="gradeLetter" id="gContact">A</span></div>
+          <div class="sBar"><span class="sName">파워</span><span class="sTrack"><i class="sFill f-pow" id="barPower"></i></span><span class="sVal" id="valPower">95</span><span class="gradeLetter" id="gPower">S</span></div>
+          <div class="sBar"><span class="sName">선구</span><span class="sTrack"><i class="sFill f-eye" id="barEye"></i></span><span class="sVal" id="valEye">70</span><span class="gradeLetter" id="gEye">B</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="midRow">
+      <div class="basePanel">
+        <span class="sbOut">OUT <i class="lamp" id="out0"></i><i class="lamp" id="out1"></i><i class="lamp" id="out2"></i></span>
+        <span class="sbRuns">실점 <b id="scoreRuns">0</b>/3</span>
+      </div>
+      <div class="nextPanel">
+        <span class="npTitle">NEXT</span>
+        <div class="npCards" id="nextCards"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ===== 중앙 연출 영역 ===== -->
+  <div id="field">
+    <div id="diamond">
+      <i class="base b2" id="base2"><span class="runner">🏃</span></i>
+      <i class="base b1" id="base1"><span class="runner">🏃</span></i>
+      <i class="base b3" id="base3"><span class="runner">🏃</span></i>
+      <i class="home"></i>
+    </div>
+    <div id="ball"></div>
+    <div id="popup">
+      <div class="big" id="popBig"></div>
+      <div class="sub" id="popSub"></div>
+    </div>
+
+    <!-- 일과 종료 배너 -->
+    <div id="banner">
+      <div class="t" id="bannerT"></div>
+      <div class="d" id="bannerD"></div>
+    </div>
+  </div>
+
+  <div id="vsBadge">VS</div>
+
+  <!-- ===== 하단 투수 영역 (BLUE) ===== -->
+  <div id="pitcherArea">
+    <div class="charPanel blue">
+      <div class="pitcher">
+        <div class="px cap"></div>
+        <div class="px head"></div>
+        <div class="px body"></div>
+        <div class="px num">1</div>
+        <div class="px armL"></div>
+        <div class="px armR"></div>
+        <div class="px legL"></div>
+        <div class="px legR"></div>
+      </div>
+      <div class="charInfo">
+        <div class="charName">
+          <span class="sideTag blue">투수</span>
+          <span>나의 에이스</span>
+          <span class="pitStat">통산 ⚾<b id="totalOuts">0</b> · 방어율 <b id="eraVal">0.00</b></span>
+        </div>
+        <div class="statBars">
+          <div class="sBar"><span class="sName">구속</span><span class="sTrack"><i class="sFill f-vel" id="barVel"></i></span><span class="sVal" id="valVel">55</span></div>
+          <div class="sBar"><span class="sName">제구</span><span class="sTrack"><i class="sFill f-ctl" id="barCon"></i></span><span class="sVal" id="valCon">55</span></div>
+          <div class="hpWrap">
+            <div class="hpLabel"><span>⚡ 체력</span><span id="hpNum">5 / 5</span></div>
+            <div class="hpBar" id="hpBar"></div>
+          </div>
+          <div class="pitInfoRow">
+            <span class="tiny" id="condText">컨디션: 보통</span>
+            <span class="dischargeTag" id="dischargeTag"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="pitchBtns">
+      <button class="btn fast" id="btnFast">
+        ⚡ 빠른볼
+        <span class="prob" id="probFast">아웃 --%</span>
+      </button>
+      <button class="btn curve" id="btnCurve">
+        🌀 변화구
+        <span class="prob" id="probCurve">아웃 --%</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ===== 슬롯머신 (화면 전체 레이어 팝업) ===== -->
+  <div id="slot">
+    <div class="slotModal">
+      <div class="slotTitle">🎰 아웃 보상 슬롯!</div>
+      <div class="slotMachine">
+        <div class="slotEye">
+          <div class="eyeIco">👁️</div>
+          <div class="eyeNum" id="slotEye">1/3</div>
+          <div class="eyeLbl">투수의 눈</div>
+        </div>
+        <div class="barrel">
+          <div class="reels">
+            <div class="reel" id="r0">❔</div>
+            <div class="reel" id="r1">❔</div>
+            <div class="reel" id="r2">❔</div>
+          </div>
+          <div class="lever" id="lever"><span class="leverBall"></span></div>
+        </div>
+        <div class="rarityTable">
+          <div class="rt rt-legend"><span>전설</span><b>1%</b></div>
+          <div class="rt rt-epic"><span>에픽</span><b>5%</b></div>
+          <div class="rt rt-rare"><span>레어</span><b>10%</b></div>
+          <div class="rt rt-magic"><span>매직</span><b>30%</b></div>
+          <div class="rt rt-normal"><span>일반</span><b>54%</b></div>
+        </div>
+      </div>
+      <div class="slotResult" id="slotResult"></div>
+      <div class="slotReward" id="slotReward"></div>
+      <button class="btn" id="slotConfirm" style="display:none;">확인 ✔</button>
+    </div>
+  </div>
+
+  <!-- ===== 성장(월요일) 화면 ===== -->
+  <div id="growth">
+    <h2>🌙 월요일 · 성장 훈련장</h2>
+    <div class="box" style="padding:10px; text-align:center; font-size:12px;">
+      이번 주 한 주간 모은 자원으로 투수를 영구히 단련하자!<br>
+      <span class="exp" style="color:var(--exp)">보유 EXP: <b id="gExp">0</b></span>
+    </div>
+
+    <div class="trainCard box" data-train="vel">
+      <div class="ico">🔥</div>
+      <div class="info">
+        <div class="t">구속 단련 <b style="color:var(--fast)">+1</b></div>
+        <div class="d">현재 구속 <span id="gVel">55</span></div>
+      </div>
+      <div style="text-align:right;">
+        <div class="cost">EXP <span id="costVel">80</span></div>
+        <button class="btn" data-buy="vel" style="margin-top:5px;font-size:11px;padding:6px 10px;">단련</button>
+      </div>
+    </div>
+
+    <div class="trainCard box" data-train="con">
+      <div class="ico">🎯</div>
+      <div class="info">
+        <div class="t">제구 단련 <b style="color:var(--curve)">+1</b></div>
+        <div class="d">현재 제구 <span id="gCon">55</span></div>
+      </div>
+      <div style="text-align:right;">
+        <div class="cost">EXP <span id="costCon">80</span></div>
+        <button class="btn" data-buy="con" style="margin-top:5px;font-size:11px;padding:6px 10px;">단련</button>
+      </div>
+    </div>
+
+    <div class="trainCard box" data-train="hp">
+      <div class="ico">❤️</div>
+      <div class="info">
+        <div class="t">최대 체력 단련 <b style="color:var(--hp)">+1</b></div>
+        <div class="d">현재 최대 HP <span id="gHp">5</span></div>
+      </div>
+      <div style="text-align:right;">
+        <div class="cost">EXP <span id="costHp">120</span></div>
+        <button class="btn" data-buy="hp" style="margin-top:5px;font-size:11px;padding:6px 10px;">단련</button>
+      </div>
+    </div>
+
+    <div id="growthMsg" class="tiny" style="text-align:center;min-height:14px;color:var(--accent)"></div>
+
+    <div class="shopHead">🛒 랜덤 상점 <span class="shopGold">보유 GOLD <b id="shopGold">0</b></span></div>
+    <div id="shopList"></div>
+    <div class="tiny" style="text-align:center;color:var(--dim);margin-top:2px;">4개 중 1개만 구매 가능 · 구매/건너뛰기 시 화요일로</div>
+    <div id="shopMsg" class="tiny" style="text-align:center;min-height:14px;color:var(--accent)"></div>
+
+    <button class="btn" id="nextWeekBtn" style="margin-top:auto;font-size:15px;padding:13px;">▶ 건너뛰기 (화요일로)</button>
+  </div>
+
+  <!-- ===== 투수 생성 화면 ===== -->
+  <div id="create">
+    <h2>⚾ 나의 투수 생성</h2>
+    <div class="createCard">
+      <div class="createFace">🧢</div>
+      <div class="createStats">
+        <div class="sBar"><span class="sName">구속</span><span class="sTrack"><i class="sFill f-vel" id="cBarVel"></i></span><span class="sVal" id="cVel">--</span></div>
+        <div class="sBar"><span class="sName">제구</span><span class="sTrack"><i class="sFill f-ctl" id="cBarCon"></i></span><span class="sVal" id="cCon">--</span></div>
+        <div class="sBar"><span class="sName">체력</span><span class="sTrack"><i class="sFill" style="width:50%;background:linear-gradient(#5dffa0,#1fae5e)"></i></span><span class="sVal">5</span></div>
+      </div>
+    </div>
+    <div class="traitBox" id="createTrait">
+      <div class="tbIco" id="cTraitIco">❔</div>
+      <div class="tbInfo">
+        <div class="tbName" id="cTraitName">특성 ???</div>
+        <div class="tbDesc" id="cTraitDesc">주사위를 굴려 특성을 받으세요</div>
+      </div>
+    </div>
+    <div id="createMsg" class="tiny" style="text-align:center;color:var(--accent);min-height:14px;">🎲 주사위를 굴려 투수를 만드세요! (구속·제구 각 40~60 랜덤)</div>
+    <div class="createBtns">
+      <button class="btn" id="rollBtn">🎲 주사위 굴리기</button>
+      <button class="btn" id="startSeasonBtn" disabled>시즌 시작 ▶</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+"use strict";
+/* =========================================================
+   게임 데이터 & 상태
+   ========================================================= */
+
+// 등급(S~D) → 내부 수치(1~100 스케일)
+const GRADE_VAL = { S:92, A:80, B:68, C:56, D:44 };
+const GRADE_COLOR = { S:'var(--gS)', A:'var(--gA)', B:'var(--gB)', C:'var(--gC)', D:'var(--gD)' };
+
+// 타자 데이터 — 팀별 (수치는 1~100 스케일, 등급은 표시용)
+// 하루마다 랜덤 팀 → 그 팀에서 랜덤 3명을 상대
+// KBO 10개 구단 2025 전체 로스터 (이름 끝 (팀) 접미사로 자동 그룹화)
+const ALL_BATTERS = [
+  // [LG 트윈스]
+  { year:2025, name:"김준태(LG)", contact:95, power:60, eye:70, contactGrade:"S", powerGrade:"C", eyeGrade:"B", desc:"백업 타자" },
+  { year:2025, name:"김현종(LG)", contact:90, power:65, eye:65, contactGrade:"S", powerGrade:"C", eyeGrade:"C", desc:"신흥 기대주" },
+  { year:2025, name:"신민재(LG)", contact:85, power:40, eye:85, contactGrade:"A", powerGrade:"D", eyeGrade:"A", desc:"까다로운 똑딱이" },
+  { year:2025, name:"오스틴(LG)", contact:85, power:95, eye:75, contactGrade:"A", powerGrade:"S", eyeGrade:"B", desc:"공포의 홈런 타자" },
+  { year:2025, name:"문성주(LG)", contact:84, power:55, eye:82, contactGrade:"A", powerGrade:"D", eyeGrade:"A", desc:"끈질긴 교타자" },
+  { year:2025, name:"김현수(LG)", contact:82, power:75, eye:80, contactGrade:"A", powerGrade:"B", eyeGrade:"A", desc:"정교한 타격 기계" },
+  { year:2025, name:"홍창기(LG)", contact:78, power:30, eye:95, contactGrade:"B", powerGrade:"D", eyeGrade:"S", desc:"체력 뱀파이어" },
+  { year:2025, name:"구본혁(LG)", contact:78, power:50, eye:75, contactGrade:"B", powerGrade:"D", eyeGrade:"B", desc:"알토란 백업" },
+  { year:2025, name:"최원영(LG)", contact:77, power:45, eye:65, contactGrade:"B", powerGrade:"D", eyeGrade:"C", desc:"발 빠른 타자" },
+  { year:2025, name:"박해민(LG)", contact:75, power:55, eye:72, contactGrade:"B", powerGrade:"D", eyeGrade:"B", desc:"출루하면 위험함" },
+  { year:2025, name:"문보경(LG)", contact:75, power:80, eye:75, contactGrade:"B", powerGrade:"A", eyeGrade:"B", desc:"클러치 히터" },
+  { year:2025, name:"박관우(LG)", contact:72, power:50, eye:60, contactGrade:"B", powerGrade:"D", eyeGrade:"C", desc:"컨택 위주" },
+  { year:2025, name:"오지환(LG)", contact:68, power:78, eye:70, contactGrade:"C", powerGrade:"B", eyeGrade:"B", desc:"일발 장타 유격수" },
+  { year:2025, name:"박동원(LG)", contact:68, power:85, eye:60, contactGrade:"C", powerGrade:"A", eyeGrade:"C", desc:"한 방 있는 포수" },
+  { year:2025, name:"천성호(LG)", contact:65, power:50, eye:60, contactGrade:"C", powerGrade:"D", eyeGrade:"C", desc:"백업 타자" },
+  { year:2025, name:"이주헌(LG)", contact:62, power:55, eye:55, contactGrade:"C", powerGrade:"D", eyeGrade:"D", desc:"하위 타선" },
+  { year:2025, name:"송찬의(LG)", contact:60, power:70, eye:50, contactGrade:"C", powerGrade:"B", eyeGrade:"D", desc:"모 아니면 도" },
+  { year:2025, name:"이영빈(LG)", contact:58, power:55, eye:55, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"유망주" },
+  { year:2025, name:"김성우(LG)", contact:55, power:45, eye:50, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업 포수" },
+  { year:2025, name:"김주성(LG)", contact:55, power:60, eye:50, contactGrade:"D", powerGrade:"C", eyeGrade:"D", desc:"장타툴 백업" },
+  { year:2025, name:"손용준(LG)", contact:55, power:40, eye:50, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업 타자" },
+  { year:2025, name:"함창건(LG)", contact:50, power:45, eye:45, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"대타 요원" },
+  { year:2025, name:"김정율(LG)", contact:45, power:40, eye:40, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업 타자" },
+  { year:2025, name:"문정빈(LG)", contact:40, power:45, eye:45, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"유망주" },
+  // [한화 이글스]
+  { year:2025, name:"이승현(한화)", contact:95, power:50, eye:60, contactGrade:"S", powerGrade:"D", eyeGrade:"C", desc:"깜짝 활약" },
+  { year:2025, name:"장규현(한화)", contact:95, power:40, eye:60, contactGrade:"S", powerGrade:"D", eyeGrade:"C", desc:"백업 포수" },
+  { year:2025, name:"문현빈(한화)", contact:86, power:65, eye:75, contactGrade:"A", powerGrade:"C", eyeGrade:"B", desc:"천재 소년" },
+  { year:2025, name:"리베라토(한화)", contact:85, power:85, eye:70, contactGrade:"A", powerGrade:"A", eyeGrade:"B", desc:"새로운 외인" },
+  { year:2025, name:"하주석(한화)", contact:82, power:60, eye:70, contactGrade:"A", powerGrade:"C", eyeGrade:"B", desc:"돌아온 유격수" },
+  { year:2025, name:"손아섭(한화)", contact:80, power:65, eye:85, contactGrade:"A", powerGrade:"C", eyeGrade:"A", desc:"안타 제조기" },
+  { year:2025, name:"채은성(한화)", contact:80, power:80, eye:75, contactGrade:"A", powerGrade:"A", eyeGrade:"B", desc:"클러치 해결사" },
+  { year:2025, name:"최재훈(한화)", contact:78, power:55, eye:88, contactGrade:"B", powerGrade:"D", eyeGrade:"A", desc:"출루하는 포수" },
+  { year:2025, name:"이진영(한화)", contact:75, power:75, eye:70, contactGrade:"B", powerGrade:"B", eyeGrade:"B", desc:"펀치력 장착" },
+  { year:2025, name:"황영묵(한화)", contact:75, power:50, eye:70, contactGrade:"B", powerGrade:"D", eyeGrade:"B", desc:"투지 넘치는 신인" },
+  { year:2025, name:"플로리얼(한화)", contact:74, power:82, eye:65, contactGrade:"B", powerGrade:"A", eyeGrade:"C", desc:"파워 히터" },
+  { year:2025, name:"김태연(한화)", contact:72, power:75, eye:75, contactGrade:"B", powerGrade:"B", eyeGrade:"B", desc:"쏠쏠한 활약" },
+  { year:2025, name:"이도윤(한화)", contact:72, power:50, eye:70, contactGrade:"B", powerGrade:"D", eyeGrade:"B", desc:"수비 요정" },
+  { year:2025, name:"노시환(한화)", contact:72, power:92, eye:75, contactGrade:"B", powerGrade:"S", eyeGrade:"B", desc:"차세대 홈런왕" },
+  { year:2025, name:"최인호(한화)", contact:70, power:60, eye:70, contactGrade:"C", powerGrade:"C", eyeGrade:"B", desc:"성장하는 외야수" },
+  { year:2025, name:"심우준(한화)", contact:65, power:50, eye:65, contactGrade:"C", powerGrade:"D", eyeGrade:"C", desc:"발 빠른 내야수" },
+  { year:2025, name:"이원석(한화)", contact:55, power:45, eye:60, contactGrade:"D", powerGrade:"D", eyeGrade:"C", desc:"백업 외야수" },
+  { year:2025, name:"이상혁(한화)", contact:55, power:40, eye:55, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"대주자 요원" },
+  { year:2025, name:"이재원(한화)", contact:55, power:50, eye:65, contactGrade:"D", powerGrade:"D", eyeGrade:"C", desc:"베테랑 백업" },
+  { year:2025, name:"안치홍(한화)", contact:50, power:75, eye:70, contactGrade:"D", powerGrade:"B", eyeGrade:"B", desc:"노련한 타격" },
+  { year:2025, name:"허인서(한화)", contact:50, power:45, eye:50, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업 포수" },
+  { year:2025, name:"권광민(한화)", contact:45, power:60, eye:45, contactGrade:"D", powerGrade:"C", eyeGrade:"D", desc:"일발 장타" },
+  { year:2025, name:"임종찬(한화)", contact:45, power:55, eye:50, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"유망주" },
+  { year:2025, name:"유로결(한화)", contact:40, power:40, eye:45, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"외야 백업" },
+  { year:2025, name:"김인환(한화)", contact:20, power:65, eye:40, contactGrade:"D", powerGrade:"C", eyeGrade:"D", desc:"좌타 거포 요원" },
+  // [SSG 랜더스]
+  { year:2025, name:"김태윤(SSG)", contact:95, power:50, eye:60, contactGrade:"S", powerGrade:"D", eyeGrade:"C", desc:"깜짝 출전" },
+  { year:2025, name:"정현승(SSG)", contact:95, power:50, eye:60, contactGrade:"S", powerGrade:"D", eyeGrade:"C", desc:"백업 타자" },
+  { year:2025, name:"에레디아(SSG)", contact:88, power:80, eye:75, contactGrade:"A", powerGrade:"A", eyeGrade:"B", desc:"외국인 교타자" },
+  { year:2025, name:"현원회(SSG)", contact:85, power:60, eye:65, contactGrade:"A", powerGrade:"C", eyeGrade:"C", desc:"포수 유망주" },
+  { year:2025, name:"류효승(SSG)", contact:80, power:70, eye:65, contactGrade:"A", powerGrade:"B", eyeGrade:"C", desc:"거포 유망주" },
+  { year:2025, name:"최지훈(SSG)", contact:78, power:55, eye:75, contactGrade:"B", powerGrade:"D", eyeGrade:"B", desc:"짐승 수비" },
+  { year:2025, name:"고명준(SSG)", contact:78, power:75, eye:65, contactGrade:"B", powerGrade:"B", eyeGrade:"C", desc:"차세대 거포" },
+  { year:2025, name:"박성한(SSG)", contact:75, power:60, eye:82, contactGrade:"B", powerGrade:"C", eyeGrade:"A", desc:"핵심 유격수" },
+  { year:2025, name:"한유섬(SSG)", contact:75, power:85, eye:70, contactGrade:"B", powerGrade:"A", eyeGrade:"B", desc:"한 방이 있는 남자" },
+  { year:2025, name:"석정우(SSG)", contact:72, power:50, eye:60, contactGrade:"B", powerGrade:"D", eyeGrade:"C", desc:"내야 백업" },
+  { year:2025, name:"안상현(SSG)", contact:72, power:55, eye:65, contactGrade:"B", powerGrade:"D", eyeGrade:"C", desc:"발 빠른 내야수" },
+  { year:2025, name:"정준재(SSG)", contact:68, power:50, eye:70, contactGrade:"C", powerGrade:"D", eyeGrade:"B", desc:"출루형 백업" },
+  { year:2025, name:"최정(SSG)", contact:68, power:95, eye:85, contactGrade:"C", powerGrade:"S", eyeGrade:"A", desc:"리빙 레전드" },
+  { year:2025, name:"이지영(SSG)", contact:65, power:45, eye:65, contactGrade:"C", powerGrade:"D", eyeGrade:"C", desc:"노련한 안방마님" },
+  { year:2025, name:"조형우(SSG)", contact:65, power:65, eye:60, contactGrade:"C", powerGrade:"C", eyeGrade:"C", desc:"차세대 포수" },
+  { year:2025, name:"이율예(SSG)", contact:62, power:50, eye:55, contactGrade:"C", powerGrade:"D", eyeGrade:"D", desc:"유망주 포수" },
+  { year:2025, name:"김성현(SSG)", contact:60, power:50, eye:65, contactGrade:"C", powerGrade:"D", eyeGrade:"C", desc:"베테랑 내야수" },
+  { year:2025, name:"맥브룸(SSG)", contact:55, power:80, eye:60, contactGrade:"D", powerGrade:"A", eyeGrade:"C", desc:"외국인 거포" },
+  { year:2025, name:"오태곤(SSG)", contact:55, power:65, eye:60, contactGrade:"D", powerGrade:"C", eyeGrade:"C", desc:"전천후 유틸리티" },
+  { year:2025, name:"이승민(SSG)", contact:55, power:55, eye:50, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"외야 백업" },
+  { year:2025, name:"홍대인(SSG)", contact:55, power:50, eye:55, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"내야 백업" },
+  { year:2025, name:"김성욱(SSG)", contact:52, power:70, eye:55, contactGrade:"D", powerGrade:"B", eyeGrade:"D", desc:"일발 장타" },
+  { year:2025, name:"최준우(SSG)", contact:50, power:50, eye:65, contactGrade:"D", powerGrade:"D", eyeGrade:"C", desc:"출루형 내야수" },
+  { year:2025, name:"채현우(SSG)", contact:50, power:45, eye:50, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"대주자 요원" },
+  { year:2025, name:"신범수(SSG)", contact:48, power:55, eye:55, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업 포수" },
+  { year:2025, name:"김찬형(SSG)", contact:45, power:50, eye:55, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"내야 백업" },
+  { year:2025, name:"박지환(SSG)", contact:40, power:45, eye:45, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"유망주" },
+  { year:2025, name:"최상민(SSG)", contact:38, power:40, eye:40, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"대주자 요원" },
+  { year:2025, name:"하재훈(SSG)", contact:38, power:75, eye:50, contactGrade:"D", powerGrade:"B", eyeGrade:"D", desc:"모 아니면 도" },
+  { year:2025, name:"김수윤(SSG)", contact:25, power:40, eye:35, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업 타자" },
+  // [삼성 라이온즈]
+  { year:2025, name:"김태근(삼성)", contact:90, power:50, eye:60, contactGrade:"S", powerGrade:"D", eyeGrade:"C", desc:"준수한 활약" },
+  { year:2025, name:"김성윤(삼성)", contact:88, power:55, eye:70, contactGrade:"A", powerGrade:"D", eyeGrade:"B", desc:"발 빠른 외야수" },
+  { year:2025, name:"구자욱(삼성)", contact:86, power:88, eye:82, contactGrade:"A", powerGrade:"A", eyeGrade:"A", desc:"라이온즈의 심장" },
+  { year:2025, name:"디아즈(삼성)", contact:85, power:90, eye:75, contactGrade:"A", powerGrade:"S", eyeGrade:"B", desc:"외국인 거포" },
+  { year:2025, name:"박승규(삼성)", contact:78, power:60, eye:65, contactGrade:"B", powerGrade:"C", eyeGrade:"C", desc:"수비 요정" },
+  { year:2025, name:"김도환(삼성)", contact:78, power:55, eye:65, contactGrade:"B", powerGrade:"D", eyeGrade:"C", desc:"백업 포수" },
+  { year:2025, name:"김지찬(삼성)", contact:77, power:30, eye:85, contactGrade:"B", powerGrade:"D", eyeGrade:"A", desc:"작은 거인" },
+  { year:2025, name:"류지혁(삼성)", contact:77, power:50, eye:78, contactGrade:"B", powerGrade:"D", eyeGrade:"B", desc:"만능 내야수" },
+  { year:2025, name:"전병우(삼성)", contact:75, power:65, eye:70, contactGrade:"B", powerGrade:"C", eyeGrade:"B", desc:"내야 유틸리티" },
+  { year:2025, name:"강민호(삼성)", contact:74, power:80, eye:75, contactGrade:"B", powerGrade:"A", eyeGrade:"B", desc:"국가대표 안방마님" },
+  { year:2025, name:"양도근(삼성)", contact:70, power:55, eye:60, contactGrade:"C", powerGrade:"D", eyeGrade:"C", desc:"백업 외야수" },
+  { year:2025, name:"이재현(삼성)", contact:68, power:75, eye:70, contactGrade:"C", powerGrade:"B", eyeGrade:"B", desc:"주전 유격수" },
+  { year:2025, name:"김영웅(삼성)", contact:68, power:85, eye:65, contactGrade:"C", powerGrade:"A", eyeGrade:"C", desc:"떠오르는 거포" },
+  { year:2025, name:"김태훈(삼성)", contact:65, power:60, eye:65, contactGrade:"C", powerGrade:"C", eyeGrade:"C", desc:"백업 타자" },
+  { year:2025, name:"안주형(삼성)", contact:65, power:50, eye:65, contactGrade:"C", powerGrade:"D", eyeGrade:"C", desc:"내야 백업" },
+  { year:2025, name:"김헌곤(삼성)", contact:62, power:60, eye:65, contactGrade:"C", powerGrade:"C", eyeGrade:"C", desc:"베테랑 외야수" },
+  { year:2025, name:"함수호(삼성)", contact:60, power:55, eye:55, contactGrade:"C", powerGrade:"D", eyeGrade:"D", desc:"유망주" },
+  { year:2025, name:"이병헌(삼성)", contact:55, power:50, eye:60, contactGrade:"D", powerGrade:"D", eyeGrade:"C", desc:"백업 포수" },
+  { year:2025, name:"이창용(삼성)", contact:55, power:60, eye:55, contactGrade:"D", powerGrade:"C", eyeGrade:"D", desc:"장타툴 백업" },
+  { year:2025, name:"이해승(삼성)", contact:55, power:50, eye:55, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"내야 백업" },
+  { year:2025, name:"박병호(삼성)", contact:55, power:90, eye:70, contactGrade:"D", powerGrade:"S", eyeGrade:"B", desc:"국민 거포" },
+  { year:2025, name:"이성규(삼성)", contact:52, power:75, eye:55, contactGrade:"D", powerGrade:"B", eyeGrade:"D", desc:"일발 장타" },
+  { year:2025, name:"양우현(삼성)", contact:50, power:45, eye:50, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업 타자" },
+  { year:2025, name:"심재훈(삼성)", contact:50, power:50, eye:50, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업 타자" },
+  { year:2025, name:"윤정빈(삼성)", contact:45, power:65, eye:55, contactGrade:"D", powerGrade:"C", eyeGrade:"D", desc:"파워 툴" },
+  { year:2025, name:"김재성(삼성)", contact:35, power:50, eye:50, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업 포수" },
+  { year:2025, name:"홍현빈(삼성)", contact:35, power:40, eye:45, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"대주자 요원" },
+  // [NC 다이노스]
+  { year:2025, name:"김정호(NC)", contact:95, power:50, eye:60, contactGrade:"S", powerGrade:"D", eyeGrade:"C", desc:"깜짝 출전" },
+  { year:2025, name:"김한별(NC)", contact:85, power:45, eye:65, contactGrade:"A", powerGrade:"D", eyeGrade:"C", desc:"내야 백업" },
+  { year:2025, name:"박민우(NC)", contact:84, power:50, eye:85, contactGrade:"A", powerGrade:"D", eyeGrade:"A", desc:"안타 제조기" },
+  { year:2025, name:"데이비슨(NC)", contact:80, power:95, eye:75, contactGrade:"A", powerGrade:"S", eyeGrade:"B", desc:"괴력의 외국인" },
+  { year:2025, name:"김주원(NC)", contact:78, power:70, eye:78, contactGrade:"B", powerGrade:"B", eyeGrade:"B", desc:"스위치 히터" },
+  { year:2025, name:"박건우(NC)", contact:78, power:75, eye:80, contactGrade:"B", powerGrade:"B", eyeGrade:"A", desc:"정교한 우타자" },
+  { year:2025, name:"최정원(NC)", contact:75, power:50, eye:70, contactGrade:"B", powerGrade:"D", eyeGrade:"B", desc:"내야 유틸리티" },
+  { year:2025, name:"서호철(NC)", contact:72, power:65, eye:75, contactGrade:"B", powerGrade:"C", eyeGrade:"B", desc:"주전 내야수" },
+  { year:2025, name:"박영빈(NC)", contact:70, power:45, eye:60, contactGrade:"C", powerGrade:"D", eyeGrade:"C", desc:"외야 백업" },
+  { year:2025, name:"오태양(NC)", contact:70, power:50, eye:60, contactGrade:"C", powerGrade:"D", eyeGrade:"C", desc:"내야 백업" },
+  { year:2025, name:"이우성(NC)", contact:70, power:75, eye:70, contactGrade:"C", powerGrade:"B", eyeGrade:"B", desc:"든든한 외야수" },
+  { year:2025, name:"김휘집(NC)", contact:68, power:75, eye:70, contactGrade:"C", powerGrade:"B", eyeGrade:"B", desc:"일발 장타자" },
+  { year:2025, name:"권희동(NC)", contact:68, power:65, eye:85, contactGrade:"C", powerGrade:"C", eyeGrade:"A", desc:"눈야구의 달인" },
+  { year:2025, name:"최원준(NC)", contact:65, power:55, eye:75, contactGrade:"C", powerGrade:"D", eyeGrade:"B", desc:"발 빠른 외야수" },
+  { year:2025, name:"천재환(NC)", contact:65, power:60, eye:65, contactGrade:"C", powerGrade:"C", eyeGrade:"C", desc:"외야 백업" },
+  { year:2025, name:"오영수(NC)", contact:62, power:70, eye:60, contactGrade:"C", powerGrade:"B", eyeGrade:"C", desc:"좌타 거포 요원" },
+  { year:2025, name:"김형준(NC)", contact:62, power:75, eye:65, contactGrade:"C", powerGrade:"B", eyeGrade:"C", desc:"차세대 안방마님" },
+  { year:2025, name:"박시원(NC)", contact:55, power:55, eye:60, contactGrade:"D", powerGrade:"D", eyeGrade:"C", desc:"외야 유망주" },
+  { year:2025, name:"고승완(NC)", contact:55, power:45, eye:55, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"대주자 요원" },
+  { year:2025, name:"송승환(NC)", contact:55, power:60, eye:50, contactGrade:"D", powerGrade:"C", eyeGrade:"D", desc:"장타툴 백업" },
+  { year:2025, name:"한석현(NC)", contact:52, power:45, eye:55, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"외야 백업" },
+  { year:2025, name:"한재환(NC)", contact:50, power:50, eye:50, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업 타자" },
+  { year:2025, name:"도태훈(NC)", contact:48, power:55, eye:65, contactGrade:"D", powerGrade:"D", eyeGrade:"C", desc:"내야 유틸리티" },
+  { year:2025, name:"홍종표(NC)", contact:45, power:40, eye:55, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"내야 수비 요원" },
+  { year:2025, name:"박세혁(NC)", contact:45, power:55, eye:60, contactGrade:"D", powerGrade:"D", eyeGrade:"C", desc:"베테랑 포수" },
+  { year:2025, name:"안중열(NC)", contact:38, power:55, eye:50, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업 포수" },
+  { year:2025, name:"박한결(NC)", contact:32, power:50, eye:45, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"거포 유망주" },
+  // [KT 위즈]
+  { year:2025, name:"이호연(KT)", contact:92, power:75, eye:75, contactGrade:"S", powerGrade:"B", eyeGrade:"B", desc:"정교한 맹타" },
+  { year:2025, name:"안현민(KT)", contact:90, power:90, eye:70, contactGrade:"S", powerGrade:"S", eyeGrade:"B", desc:"차세대 거포" },
+  { year:2025, name:"김민혁(KT)", contact:85, power:45, eye:85, contactGrade:"A", powerGrade:"D", eyeGrade:"A", desc:"발 빠른 교타자" },
+  { year:2025, name:"허경민(KT)", contact:82, power:60, eye:82, contactGrade:"A", powerGrade:"C", eyeGrade:"A", desc:"베테랑 내야수" },
+  { year:2025, name:"황재균(KT)", contact:80, power:70, eye:75, contactGrade:"A", powerGrade:"B", eyeGrade:"B", desc:"경험 많은 타자" },
+  { year:2025, name:"강백호(KT)", contact:78, power:88, eye:82, contactGrade:"B", powerGrade:"S", eyeGrade:"A", desc:"천재 타자" },
+  { year:2025, name:"박민석(KT)", contact:75, power:75, eye:65, contactGrade:"B", powerGrade:"B", eyeGrade:"C", desc:"알토란 백업" },
+  { year:2025, name:"스티븐슨(KT)", contact:75, power:74, eye:70, contactGrade:"B", powerGrade:"B", eyeGrade:"B", desc:"외국인 타자" },
+  { year:2025, name:"이정훈(KT)", contact:74, power:72, eye:75, contactGrade:"B", powerGrade:"B", eyeGrade:"B", desc:"대타 요원" },
+  { year:2025, name:"오윤석(KT)", contact:72, power:55, eye:68, contactGrade:"B", powerGrade:"D", eyeGrade:"C", desc:"수비형 내야수" },
+  { year:2025, name:"김상수(KT)", contact:72, power:58, eye:85, contactGrade:"B", powerGrade:"D", eyeGrade:"S", desc:"베테랑의 선구안" },
+  { year:2025, name:"장성우(KT)", contact:68, power:72, eye:75, contactGrade:"C", powerGrade:"B", eyeGrade:"B", desc:"안방 마님" },
+  { year:2025, name:"로하스(KT)", contact:65, power:85, eye:80, contactGrade:"C", powerGrade:"A", eyeGrade:"A", desc:"외국인 거포" },
+  { year:2025, name:"안치영(KT)", contact:62, power:50, eye:65, contactGrade:"C", powerGrade:"D", eyeGrade:"C", desc:"외야 백업" },
+  { year:2025, name:"권동진(KT)", contact:60, power:55, eye:65, contactGrade:"C", powerGrade:"D", eyeGrade:"C", desc:"백업 내야수" },
+  { year:2025, name:"문상철(KT)", contact:58, power:75, eye:60, contactGrade:"D", powerGrade:"B", eyeGrade:"C", desc:"일발 장타자" },
+  { year:2025, name:"장진혁(KT)", contact:55, power:70, eye:65, contactGrade:"D", powerGrade:"B", eyeGrade:"C", desc:"외야 유틸리티" },
+  { year:2025, name:"장준원(KT)", contact:55, power:45, eye:55, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"내야 유틸리티" },
+  { year:2025, name:"배정대(KT)", contact:50, power:60, eye:75, contactGrade:"D", powerGrade:"C", eyeGrade:"B", desc:"주전 중견수" },
+  { year:2025, name:"김병준(KT)", contact:50, power:40, eye:50, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업 요원" },
+  { year:2025, name:"강현우(KT)", contact:45, power:50, eye:45, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업 포수" },
+  { year:2025, name:"조대현(KT)", contact:45, power:45, eye:50, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"유망주" },
+  { year:2025, name:"유준규(KT)", contact:40, power:45, eye:45, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"대주자 요원" },
+  { year:2025, name:"최성민(KT)", contact:35, power:30, eye:40, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"성장 중인 타자" },
+  { year:2025, name:"윤준혁(KT)", contact:30, power:35, eye:35, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"루키" },
+  { year:2025, name:"강민성(KT)", contact:25, power:30, eye:35, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"루키" },
+  // [롯데 자이언츠]
+  { year:2025, name:"박건우(롯데)", contact:95, power:60, eye:60, contactGrade:"S", powerGrade:"C", eyeGrade:"C", desc:"맹타" },
+  { year:2025, name:"박찬형(롯데)", contact:90, power:65, eye:65, contactGrade:"S", powerGrade:"C", eyeGrade:"C", desc:"루키 돌풍" },
+  { year:2025, name:"레이예스(롯데)", contact:88, power:80, eye:75, contactGrade:"A", powerGrade:"A", eyeGrade:"B", desc:"스위치 히터" },
+  { year:2025, name:"전준우(롯데)", contact:82, power:80, eye:78, contactGrade:"A", powerGrade:"A", eyeGrade:"B", desc:"영원한 캡틴" },
+  { year:2025, name:"전민재(롯데)", contact:80, power:55, eye:65, contactGrade:"A", powerGrade:"D", eyeGrade:"C", desc:"내야 유틸리티" },
+  { year:2025, name:"박재엽(롯데)", contact:80, power:50, eye:60, contactGrade:"A", powerGrade:"D", eyeGrade:"C", desc:"백업 포수" },
+  { year:2025, name:"윤동희(롯데)", contact:78, power:70, eye:75, contactGrade:"B", powerGrade:"B", eyeGrade:"B", desc:"자이언츠의 미래" },
+  { year:2025, name:"유강남(롯데)", contact:75, power:75, eye:70, contactGrade:"B", powerGrade:"B", eyeGrade:"B", desc:"프레이밍 마스터" },
+  { year:2025, name:"한태양(롯데)", contact:75, power:55, eye:65, contactGrade:"B", powerGrade:"D", eyeGrade:"C", desc:"내야 유망주" },
+  { year:2025, name:"고승민(롯데)", contact:75, power:70, eye:75, contactGrade:"B", powerGrade:"B", eyeGrade:"B", desc:"천재적인 타격" },
+  { year:2025, name:"노진혁(롯데)", contact:74, power:65, eye:70, contactGrade:"B", powerGrade:"C", eyeGrade:"B", desc:"베테랑 내야수" },
+  { year:2025, name:"장두성(롯데)", contact:72, power:45, eye:60, contactGrade:"B", powerGrade:"D", eyeGrade:"C", desc:"대주자 스페셜리스트" },
+  { year:2025, name:"황성빈(롯데)", contact:70, power:40, eye:65, contactGrade:"C", powerGrade:"D", eyeGrade:"C", desc:"폭주 기관차" },
+  { year:2025, name:"손호영(롯데)", contact:70, power:75, eye:65, contactGrade:"C", powerGrade:"B", eyeGrade:"C", desc:"복덩이 내야수" },
+  { year:2025, name:"김민성(롯데)", contact:68, power:60, eye:70, contactGrade:"C", powerGrade:"C", eyeGrade:"B", desc:"베테랑 유틸" },
+  { year:2025, name:"이호준(롯데)", contact:68, power:50, eye:60, contactGrade:"C", powerGrade:"D", eyeGrade:"C", desc:"백업 타자" },
+  { year:2025, name:"나승엽(롯데)", contact:65, power:65, eye:75, contactGrade:"C", powerGrade:"C", eyeGrade:"B", desc:"선구안이 좋은 타자" },
+  { year:2025, name:"김동혁(롯데)", contact:62, power:50, eye:60, contactGrade:"C", powerGrade:"D", eyeGrade:"C", desc:"외야 백업" },
+  { year:2025, name:"정훈(롯데)", contact:60, power:70, eye:70, contactGrade:"C", powerGrade:"B", eyeGrade:"B", desc:"낭만 타자" },
+  { year:2025, name:"박승욱(롯데)", contact:55, power:55, eye:65, contactGrade:"D", powerGrade:"D", eyeGrade:"C", desc:"내야 멀티" },
+  { year:2025, name:"정보근(롯데)", contact:52, power:45, eye:60, contactGrade:"D", powerGrade:"D", eyeGrade:"C", desc:"수비형 포수" },
+  { year:2025, name:"신윤후(롯데)", contact:45, power:50, eye:50, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"외야 백업" },
+  { year:2025, name:"최항(롯데)", contact:45, power:50, eye:60, contactGrade:"D", powerGrade:"D", eyeGrade:"C", desc:"내야 백업" },
+  { year:2025, name:"손성빈(롯데)", contact:40, power:55, eye:50, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"강견 포수" },
+  { year:2025, name:"조세진(롯데)", contact:38, power:60, eye:45, contactGrade:"D", powerGrade:"C", eyeGrade:"D", desc:"거포 유망주" },
+  { year:2025, name:"한승현(롯데)", contact:25, power:30, eye:40, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"루키" },
+  // [KIA 타이거즈]
+  { year:2025, name:"주효상(KIA)", contact:90, power:50, eye:65, contactGrade:"S", powerGrade:"D", eyeGrade:"C", desc:"백업 포수" },
+  { year:2025, name:"김선빈(KIA)", contact:88, power:45, eye:82, contactGrade:"A", powerGrade:"D", eyeGrade:"A", desc:"타격 장인" },
+  { year:2025, name:"김도영(KIA)", contact:85, power:92, eye:80, contactGrade:"A", powerGrade:"S", eyeGrade:"A", desc:"완성형 타자" },
+  { year:2025, name:"최형우(KIA)", contact:85, power:85, eye:85, contactGrade:"A", powerGrade:"A", eyeGrade:"A", desc:"해결사 베테랑" },
+  { year:2025, name:"고종욱(KIA)", contact:82, power:55, eye:65, contactGrade:"A", powerGrade:"D", eyeGrade:"C", desc:"안타 제조기" },
+  { year:2025, name:"박찬호(KIA)", contact:78, power:40, eye:75, contactGrade:"B", powerGrade:"D", eyeGrade:"B", desc:"날쌘돌이 유격수" },
+  { year:2025, name:"김호령(KIA)", contact:78, power:55, eye:65, contactGrade:"B", powerGrade:"D", eyeGrade:"C", desc:"외야 수비의 달인" },
+  { year:2025, name:"윤도현(KIA)", contact:75, power:65, eye:65, contactGrade:"B", powerGrade:"C", eyeGrade:"C", desc:"내야 유망주" },
+  { year:2025, name:"박정우(KIA)", contact:75, power:45, eye:60, contactGrade:"B", powerGrade:"D", eyeGrade:"C", desc:"외야 백업" },
+  { year:2025, name:"나성범(KIA)", contact:72, power:88, eye:78, contactGrade:"B", powerGrade:"S", eyeGrade:"B", desc:"공포의 중심타자" },
+  { year:2025, name:"오선우(KIA)", contact:72, power:75, eye:65, contactGrade:"B", powerGrade:"B", eyeGrade:"C", desc:"좌타 거포 요원" },
+  { year:2025, name:"김석환(KIA)", contact:72, power:70, eye:60, contactGrade:"B", powerGrade:"B", eyeGrade:"C", desc:"장타툴 백업" },
+  { year:2025, name:"정현창(KIA)", contact:70, power:50, eye:60, contactGrade:"C", powerGrade:"D", eyeGrade:"C", desc:"백업 타자" },
+  { year:2025, name:"김태군(KIA)", contact:70, power:55, eye:65, contactGrade:"C", powerGrade:"D", eyeGrade:"C", desc:"든든한 포수" },
+  { year:2025, name:"한승택(KIA)", contact:65, power:55, eye:60, contactGrade:"C", powerGrade:"D", eyeGrade:"C", desc:"수비형 포수" },
+  { year:2025, name:"위즈덤(KIA)", contact:65, power:85, eye:65, contactGrade:"C", powerGrade:"A", eyeGrade:"C", desc:"외국인 타자" },
+  { year:2025, name:"김규성(KIA)", contact:62, power:55, eye:60, contactGrade:"C", powerGrade:"D", eyeGrade:"C", desc:"내야 유틸" },
+  { year:2025, name:"한준수(KIA)", contact:60, power:65, eye:60, contactGrade:"C", powerGrade:"C", eyeGrade:"C", desc:"공격형 포수" },
+  { year:2025, name:"변우혁(KIA)", contact:58, power:75, eye:60, contactGrade:"D", powerGrade:"B", eyeGrade:"C", desc:"거포 내야수" },
+  { year:2025, name:"박민(KIA)", contact:55, power:50, eye:55, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"내야 백업" },
+  { year:2025, name:"황대인(KIA)", contact:52, power:70, eye:55, contactGrade:"D", powerGrade:"B", eyeGrade:"D", desc:"우타 거포 요원" },
+  { year:2025, name:"최정용(KIA)", contact:45, power:45, eye:55, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"내야 백업" },
+  { year:2025, name:"이창진(KIA)", contact:42, power:55, eye:70, contactGrade:"D", powerGrade:"D", eyeGrade:"B", desc:"출루형 외야수" },
+  { year:2025, name:"서건창(KIA)", contact:38, power:45, eye:65, contactGrade:"D", powerGrade:"D", eyeGrade:"C", desc:"베테랑 타자" },
+  { year:2025, name:"박헌(KIA)", contact:25, power:40, eye:40, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업 타자" },
+  { year:2025, name:"박재현(KIA)", contact:25, power:40, eye:40, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"유망주" },
+  { year:2025, name:"정해원(KIA)", contact:20, power:55, eye:40, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"장타툴 유망주" },
+  // [두산 베어스]
+  { year:2025, name:"박지훈(두산)", contact:92, power:55, eye:65, contactGrade:"S", powerGrade:"D", eyeGrade:"C", desc:"깜짝 활약" },
+  { year:2025, name:"홍성호(두산)", contact:88, power:75, eye:65, contactGrade:"A", powerGrade:"B", eyeGrade:"C", desc:"거포 유망주" },
+  { year:2025, name:"양의지(두산)", contact:86, power:85, eye:90, contactGrade:"A", powerGrade:"A", eyeGrade:"S", desc:"곰들의 안방마님" },
+  { year:2025, name:"안재석(두산)", contact:82, power:65, eye:70, contactGrade:"A", powerGrade:"C", eyeGrade:"B", desc:"차세대 유격수" },
+  { year:2025, name:"케이브(두산)", contact:80, power:80, eye:75, contactGrade:"A", powerGrade:"A", eyeGrade:"B", desc:"외국인 타자" },
+  { year:2025, name:"박준순(두산)", contact:78, power:55, eye:65, contactGrade:"B", powerGrade:"D", eyeGrade:"C", desc:"내야 백업" },
+  { year:2025, name:"임종성(두산)", contact:75, power:60, eye:65, contactGrade:"B", powerGrade:"C", eyeGrade:"C", desc:"백업 타자" },
+  { year:2025, name:"박계범(두산)", contact:72, power:60, eye:65, contactGrade:"B", powerGrade:"C", eyeGrade:"C", desc:"내야 유틸리티" },
+  { year:2025, name:"오명진(두산)", contact:72, power:55, eye:60, contactGrade:"B", powerGrade:"D", eyeGrade:"C", desc:"내야 백업" },
+  { year:2025, name:"정수빈(두산)", contact:70, power:45, eye:85, contactGrade:"C", powerGrade:"D", eyeGrade:"A", desc:"잠실의 아이돌" },
+  { year:2025, name:"양석환(두산)", contact:68, power:88, eye:65, contactGrade:"C", powerGrade:"S", eyeGrade:"C", desc:"잠실 빅보이" },
+  { year:2025, name:"김기연(두산)", contact:68, power:60, eye:60, contactGrade:"C", powerGrade:"C", eyeGrade:"C", desc:"백업 포수" },
+  { year:2025, name:"조수행(두산)", contact:68, power:30, eye:65, contactGrade:"C", powerGrade:"D", eyeGrade:"C", desc:"대주자 스페셜리스트" },
+  { year:2025, name:"이유찬(두산)", contact:68, power:50, eye:65, contactGrade:"C", powerGrade:"D", eyeGrade:"C", desc:"수비형 유격수" },
+  { year:2025, name:"김재환(두산)", contact:65, power:90, eye:75, contactGrade:"C", powerGrade:"S", eyeGrade:"B", desc:"돌아온 거포" },
+  { year:2025, name:"김동준(두산)", contact:65, power:55, eye:60, contactGrade:"C", powerGrade:"D", eyeGrade:"C", desc:"백업 타자" },
+  { year:2025, name:"강승호(두산)", contact:65, power:78, eye:60, contactGrade:"C", powerGrade:"B", eyeGrade:"C", desc:"일발 장타 내야수" },
+  { year:2025, name:"김민석(두산)", contact:62, power:50, eye:60, contactGrade:"C", powerGrade:"D", eyeGrade:"C", desc:"백업 타자" },
+  { year:2025, name:"박준영(두산)", contact:60, power:70, eye:60, contactGrade:"C", powerGrade:"B", eyeGrade:"C", desc:"거포 내야수" },
+  { year:2025, name:"추재현(두산)", contact:60, power:55, eye:60, contactGrade:"C", powerGrade:"D", eyeGrade:"C", desc:"외야 백업" },
+  { year:2025, name:"김인태(두산)", contact:58, power:65, eye:75, contactGrade:"D", powerGrade:"C", eyeGrade:"B", desc:"눈야구 스페셜리스트" },
+  { year:2025, name:"김준상(두산)", contact:55, power:50, eye:55, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"유망주" },
+  { year:2025, name:"김대한(두산)", contact:55, power:65, eye:55, contactGrade:"D", powerGrade:"C", eyeGrade:"D", desc:"외야 유망주" },
+  { year:2025, name:"이선우(두산)", contact:52, power:45, eye:50, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업 타자" },
+  { year:2025, name:"류현준(두산)", contact:40, power:45, eye:45, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업 타자" },
+  { year:2025, name:"김민혁(두산)", contact:35, power:60, eye:45, contactGrade:"D", powerGrade:"C", eyeGrade:"D", desc:"거포 요원" },
+  { year:2025, name:"여동건(두산)", contact:30, power:40, eye:40, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"유망주" },
+  { year:2025, name:"전다민(두산)", contact:25, power:35, eye:40, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"루키" },
+  // [키움 히어로즈]
+  { year:2025, name:"이재상(키움)", contact:95, power:65, eye:60, contactGrade:"S", powerGrade:"C", eyeGrade:"C", desc:"특급 신인" },
+  { year:2025, name:"송성문(키움)", contact:85, power:78, eye:82, contactGrade:"A", powerGrade:"B", eyeGrade:"A", desc:"영웅 군단의 캡틴" },
+  { year:2025, name:"이주형(키움)", contact:85, power:75, eye:78, contactGrade:"A", powerGrade:"B", eyeGrade:"B", desc:"타격 천재" },
+  { year:2025, name:"최주환(키움)", contact:78, power:78, eye:75, contactGrade:"B", powerGrade:"B", eyeGrade:"B", desc:"베테랑 거포" },
+  { year:2025, name:"김동헌(키움)", contact:75, power:60, eye:70, contactGrade:"B", powerGrade:"C", eyeGrade:"B", desc:"안방마님" },
+  { year:2025, name:"변상권(키움)", contact:75, power:65, eye:65, contactGrade:"B", powerGrade:"C", eyeGrade:"C", desc:"외야 백업" },
+  { year:2025, name:"카디네스(키움)", contact:72, power:85, eye:65, contactGrade:"B", powerGrade:"A", eyeGrade:"C", desc:"외국인 파워히터" },
+  { year:2025, name:"김병휘(키움)", contact:72, power:50, eye:60, contactGrade:"B", powerGrade:"D", eyeGrade:"C", desc:"내야 백업" },
+  { year:2025, name:"주성원(키움)", contact:72, power:65, eye:65, contactGrade:"B", powerGrade:"C", eyeGrade:"C", desc:"외야 백업" },
+  { year:2025, name:"임지열(키움)", contact:70, power:75, eye:65, contactGrade:"C", powerGrade:"B", eyeGrade:"C", desc:"우타 거포 요원" },
+  { year:2025, name:"김건희(키움)", contact:70, power:65, eye:65, contactGrade:"C", powerGrade:"C", eyeGrade:"C", desc:"투타 겸업" },
+  { year:2025, name:"스톤(키움)", contact:68, power:75, eye:65, contactGrade:"C", powerGrade:"B", eyeGrade:"C", desc:"외국인 타자" },
+  { year:2025, name:"오선진(키움)", contact:68, power:50, eye:65, contactGrade:"C", powerGrade:"D", eyeGrade:"C", desc:"수비형 내야수" },
+  { year:2025, name:"어준서(키움)", contact:68, power:55, eye:60, contactGrade:"C", powerGrade:"D", eyeGrade:"C", desc:"유망주" },
+  { year:2025, name:"임병욱(키움)", contact:65, power:70, eye:65, contactGrade:"C", powerGrade:"B", eyeGrade:"C", desc:"오타니 스윙" },
+  { year:2025, name:"김태진(키움)", contact:65, power:50, eye:70, contactGrade:"C", powerGrade:"D", eyeGrade:"B", desc:"배트 컨트롤" },
+  { year:2025, name:"전태현(키움)", contact:65, power:55, eye:60, contactGrade:"C", powerGrade:"D", eyeGrade:"C", desc:"내야 백업" },
+  { year:2025, name:"박주홍(키움)", contact:62, power:70, eye:65, contactGrade:"C", powerGrade:"B", eyeGrade:"C", desc:"거포 유망주" },
+  { year:2025, name:"김동엽(키움)", contact:62, power:80, eye:55, contactGrade:"C", powerGrade:"A", eyeGrade:"D", desc:"파워 히터" },
+  { year:2025, name:"고영우(키움)", contact:60, power:55, eye:60, contactGrade:"C", powerGrade:"D", eyeGrade:"C", desc:"내야 유망주" },
+  { year:2025, name:"이용규(키움)", contact:60, power:30, eye:85, contactGrade:"C", powerGrade:"D", eyeGrade:"A", desc:"용규 놀이" },
+  { year:2025, name:"푸이그(키움)", contact:58, power:85, eye:65, contactGrade:"D", powerGrade:"A", eyeGrade:"C", desc:"돌아온 야생마" },
+  { year:2025, name:"염승원(키움)", contact:58, power:50, eye:55, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업 타자" },
+  { year:2025, name:"김재현(키움)", contact:55, power:50, eye:60, contactGrade:"D", powerGrade:"D", eyeGrade:"C", desc:"백업 포수" },
+  { year:2025, name:"이형종(키움)", contact:55, power:70, eye:60, contactGrade:"D", powerGrade:"B", eyeGrade:"C", desc:"광토마" },
+  { year:2025, name:"강진성(키움)", contact:50, power:65, eye:60, contactGrade:"D", powerGrade:"C", eyeGrade:"C", desc:"우타 외야수" },
+  { year:2025, name:"송지후(키움)", contact:48, power:50, eye:55, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"유망주" },
+  { year:2025, name:"원성준(키움)", contact:45, power:55, eye:50, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"내야 유망주" },
+  { year:2025, name:"박수종(키움)", contact:38, power:45, eye:45, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"외야 백업" },
+];
+// 팀 메타(표시 이름/이모지/색)
+const TEAM_META = {
+  'LG':   { name:'LG 트윈스',    emoji:'👯', color:'#c30452' },
+  '한화': { name:'한화 이글스',  emoji:'🦅', color:'#fc4e00' },
+  'SSG':  { name:'SSG 랜더스',   emoji:'🌊', color:'#ce0e2d' },
+  '삼성': { name:'삼성 라이온즈',emoji:'🦁', color:'#074ca1' },
+  'NC':   { name:'NC 다이노스',  emoji:'🦖', color:'#315288' },
+  'KT':   { name:'KT 위즈',      emoji:'🧙', color:'#231f20' },
+  '롯데': { name:'롯데 자이언츠',emoji:'🦣', color:'#041e42' },
+  'KIA':  { name:'KIA 타이거즈', emoji:'🐯', color:'#06141f' },
+  '두산': { name:'두산 베어스',  emoji:'🐻', color:'#131230' },
+  '키움': { name:'키움 히어로즈',emoji:'🦸', color:'#570514' },
+};
+// 이름 끝의 (팀) 접미사로 그룹화
+function buildTeams(list){
+  const T = {};
+  list.forEach(b=>{
+    const m = b.name.match(/\(([^)]+)\)\s*$/);
+    const key = m ? m[1] : '기타';
+    const cleanName = b.name.replace(/\s*\([^)]+\)\s*$/, '');
+    if(!T[key]){
+      const meta = TEAM_META[key] || { name:key, emoji:'⚾', color:'#444' };
+      T[key] = { name:meta.name, short:key, emoji:meta.emoji, color:meta.color, batters:[] };
+    }
+    T[key].batters.push(Object.assign({}, b, { name:cleanName, team:key }));
+  });
+  return T;
+}
+const TEAMS = buildTeams(ALL_BATTERS);
+const _OLD_UNUSED = {
+  LG: { name:'LG 트윈스', short:'LG', emoji:'🦅', color:'#c30452', batters:[
+    { team:"LG", year:2025, name:"오스틴",   contact:85, power:95, eye:70, contactGrade:"A", powerGrade:"S", eyeGrade:"B", desc:"공포의 홈런 타자" },
+    { team:"LG", year:2025, name:"신민재",   contact:90, power:40, eye:85, contactGrade:"S", powerGrade:"D", eyeGrade:"A", desc:"까다로운 똑딱이" },
+    { team:"LG", year:2025, name:"문성주",   contact:88, power:55, eye:82, contactGrade:"A", powerGrade:"D", eyeGrade:"A", desc:"끈질긴 교타자" },
+    { team:"LG", year:2025, name:"김현수",   contact:82, power:75, eye:80, contactGrade:"A", powerGrade:"B", eyeGrade:"A", desc:"정교한 타격 기계" },
+    { team:"LG", year:2025, name:"홍창기",   contact:78, power:30, eye:95, contactGrade:"B", powerGrade:"D", eyeGrade:"S", desc:"체력 뱀파이어" },
+    { team:"LG", year:2025, name:"구본혁",   contact:78, power:50, eye:75, contactGrade:"B", powerGrade:"D", eyeGrade:"B", desc:"알토란 같은 내야수" },
+    { team:"LG", year:2025, name:"최원영",   contact:77, power:45, eye:65, contactGrade:"B", powerGrade:"D", eyeGrade:"C", desc:"발 빠른 백업" },
+    { team:"LG", year:2025, name:"박해민",   contact:75, power:55, eye:72, contactGrade:"B", powerGrade:"D", eyeGrade:"B", desc:"출루하면 위험한 타자" },
+    { team:"LG", year:2025, name:"문보경",   contact:75, power:80, eye:75, contactGrade:"B", powerGrade:"A", eyeGrade:"B", desc:"클러치 히터" },
+    { team:"LG", year:2025, name:"오지환",   contact:68, power:78, eye:70, contactGrade:"C", powerGrade:"B", eyeGrade:"B", desc:"일발 장타 유격수" },
+    { team:"LG", year:2025, name:"박동원",   contact:65, power:85, eye:60, contactGrade:"C", powerGrade:"A", eyeGrade:"C", desc:"한 방이 있는 포수" },
+    { team:"LG", year:2025, name:"김준태",   contact:70, power:60, eye:65, contactGrade:"B", powerGrade:"C", eyeGrade:"C", desc:"백업 요원" },
+    { team:"LG", year:2025, name:"김현종",   contact:72, power:65, eye:60, contactGrade:"B", powerGrade:"C", eyeGrade:"C", desc:"신흥 기대주" },
+    { team:"LG", year:2025, name:"박관우",   contact:68, power:55, eye:62, contactGrade:"C", powerGrade:"D", eyeGrade:"C", desc:"컨택 위주 타자" },
+    { team:"LG", year:2025, name:"천성호",   contact:62, power:50, eye:60, contactGrade:"C", powerGrade:"D", eyeGrade:"C", desc:"평범한 타자" },
+    { team:"LG", year:2025, name:"이주헌",   contact:58, power:52, eye:58, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"하위 타선" },
+    { team:"LG", year:2025, name:"송찬의",   contact:55, power:70, eye:55, contactGrade:"D", powerGrade:"B", eyeGrade:"D", desc:"삼진 아니면 홈런" },
+    { team:"LG", year:2025, name:"이영빈",   contact:54, power:55, eye:50, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"성장 중인 유망주" },
+    { team:"LG", year:2025, name:"김성우",   contact:50, power:40, eye:50, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"쉬어가는 타선" },
+    { team:"LG", year:2025, name:"김주성",   contact:50, power:60, eye:55, contactGrade:"D", powerGrade:"C", eyeGrade:"D", desc:"펀치력 있는 백업" },
+    { team:"LG", year:2025, name:"손용준",   contact:50, power:45, eye:50, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"쉬어가는 타선" },
+    { team:"LG", year:2025, name:"함창건",   contact:45, power:40, eye:45, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"대타 요원" },
+    { team:"LG", year:2025, name:"김정율",   contact:45, power:35, eye:45, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"하위 타선" },
+    { team:"LG", year:2025, name:"문정빈",   contact:40, power:50, eye:40, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"약점이 많은 타자" },
+  ]},
+  KT: { name:'KT 위즈', short:'KT', emoji:'🧙', color:'#231f20', batters:[
+    { team:"KT", year:2025, name:"이호연",   contact:92, power:75, eye:75, contactGrade:"S", powerGrade:"B", eyeGrade:"B", desc:"정교한 맹타" },
+    { team:"KT", year:2025, name:"안현민",   contact:90, power:90, eye:70, contactGrade:"S", powerGrade:"S", eyeGrade:"B", desc:"차세대 거포" },
+    { team:"KT", year:2025, name:"김민혁",   contact:85, power:45, eye:85, contactGrade:"A", powerGrade:"D", eyeGrade:"A", desc:"발 빠른 교타자" },
+    { team:"KT", year:2025, name:"허경민",   contact:82, power:60, eye:82, contactGrade:"A", powerGrade:"C", eyeGrade:"A", desc:"베테랑 내야수" },
+    { team:"KT", year:2025, name:"황재균",   contact:80, power:70, eye:75, contactGrade:"A", powerGrade:"B", eyeGrade:"B", desc:"경험 많은 타자" },
+    { team:"KT", year:2025, name:"강백호",   contact:78, power:88, eye:82, contactGrade:"B", powerGrade:"S", eyeGrade:"A", desc:"천재 타자" },
+    { team:"KT", year:2025, name:"박민석",   contact:75, power:75, eye:65, contactGrade:"B", powerGrade:"B", eyeGrade:"C", desc:"알토란 백업" },
+    { team:"KT", year:2025, name:"스티븐슨", contact:75, power:74, eye:70, contactGrade:"B", powerGrade:"B", eyeGrade:"B", desc:"외국인 타자" },
+    { team:"KT", year:2025, name:"이정훈",   contact:74, power:72, eye:75, contactGrade:"B", powerGrade:"B", eyeGrade:"B", desc:"대타 요원" },
+    { team:"KT", year:2025, name:"오윤석",   contact:72, power:55, eye:68, contactGrade:"B", powerGrade:"D", eyeGrade:"C", desc:"수비형 내야수" },
+    { team:"KT", year:2025, name:"김상수",   contact:72, power:58, eye:85, contactGrade:"B", powerGrade:"D", eyeGrade:"S", desc:"베테랑의 선구안" },
+    { team:"KT", year:2025, name:"장성우",   contact:68, power:72, eye:75, contactGrade:"C", powerGrade:"B", eyeGrade:"B", desc:"안방 마님" },
+    { team:"KT", year:2025, name:"로하스",   contact:65, power:85, eye:80, contactGrade:"C", powerGrade:"A", eyeGrade:"A", desc:"외국인 거포" },
+    { team:"KT", year:2025, name:"안치영",   contact:62, power:50, eye:65, contactGrade:"C", powerGrade:"D", eyeGrade:"C", desc:"외야 백업" },
+    { team:"KT", year:2025, name:"권동진",   contact:60, power:55, eye:65, contactGrade:"C", powerGrade:"D", eyeGrade:"C", desc:"백업 내야수" },
+    { team:"KT", year:2025, name:"문상철",   contact:58, power:75, eye:60, contactGrade:"D", powerGrade:"B", eyeGrade:"C", desc:"일발 장타자" },
+    { team:"KT", year:2025, name:"장진혁",   contact:55, power:70, eye:65, contactGrade:"D", powerGrade:"B", eyeGrade:"C", desc:"외야 유틸리티" },
+    { team:"KT", year:2025, name:"장준원",   contact:55, power:45, eye:55, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"내야 유틸리티" },
+    { team:"KT", year:2025, name:"배정대",   contact:50, power:60, eye:75, contactGrade:"D", powerGrade:"C", eyeGrade:"B", desc:"중견수" },
+    { team:"KT", year:2025, name:"김병준",   contact:50, power:40, eye:50, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업 요원" },
+    { team:"KT", year:2025, name:"강현우",   contact:45, power:50, eye:45, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업 포수" },
+    { team:"KT", year:2025, name:"조대현",   contact:45, power:45, eye:50, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"유망주" },
+    { team:"KT", year:2025, name:"유준규",   contact:40, power:45, eye:45, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"대주자 요원" },
+    { team:"KT", year:2025, name:"최성민",   contact:35, power:30, eye:40, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"성장 중인 타자" },
+    { team:"KT", year:2025, name:"윤준혁",   contact:30, power:35, eye:35, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"루키" },
+    { team:"KT", year:2025, name:"강민성",   contact:25, power:30, eye:35, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"루키" },
+    { team:"KT", year:2025, name:"김건형",   contact:20, power:25, eye:30, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"루키" },
+  ]},
+};
+const TEAM_KEYS = Object.keys(TEAMS);
+
+// 수치 → 등급 (종합 등급 표시용)
+function gradeFromVal(v){
+  if(v>=88) return 'S';
+  if(v>=76) return 'A';
+  if(v>=64) return 'B';
+  if(v>=52) return 'C';
+  return 'D';
+}
+// 타자 얼굴(아키타입별 이모지)
+function faceOf(b){
+  if(b.power>=82) return '🦍';
+  if(b.eye>=88)  return '🦉';
+  if(b.contact>=85) return '🎯';
+  if(b.power<=45 && b.contact<=55) return '🐤';
+  return '🧢';
+}
+
+const WEEKDAYS = ['월','화','수','목','금','토','일'];
+
+// 훈련 비용
+const COST = { vel:80, con:80, hp:120 };
+
+// 기본/방전/컨디션 상수
+const BASE_OUT = 70;          // 기본 아웃 확률(%) — 중립 스탯에서 70% 아웃
+const DISCHARGE_PEN = 10;     // 방전 시 구속/제구 -10
+const COND = {
+  good:   { label:'좋음 😎', mod:+2 },
+  normal: { label:'보통 😐', mod:0  },
+  bad:    { label:'나쁨 🤢', mod:-2 },
+};
+
+// 퀘스트 풀
+//  reach : 목표 이상 달성 시 즉시 보상 (누적형)
+//  limit : 하루 끝까지 제한값 이하 유지 시 보상 (수비형)
+const QUEST_POOL = [
+  { label:'아웃 3개 잡기',   type:'reach', metric:'outs',   target:3, exp:60, gold:0  },
+  { label:'삼진 1개 이상',   type:'reach', metric:'ks',     target:1, exp:40, gold:0  },
+  { label:'삼진 2개 이상',   type:'reach', metric:'ks',     target:2, exp:0,  gold:60 },
+  { label:'아웃 2개 잡기',   type:'reach', metric:'outs',   target:2, exp:30, gold:0  },
+  { label:'실점 없이 막기',  type:'limit', metric:'runs',   target:0, exp:0,  gold:80 },
+  { label:'홈런 허용 0',     type:'limit', metric:'homers', target:0, exp:50, gold:0  },
+  { label:'안타 2개 이하',   type:'limit', metric:'hits',   target:2, exp:0,  gold:50 },
+];
+
+// 투수 특성 (생성 시 1개 랜덤 부여)
+//  cond 없음 = 상시 / cond:'out0' = 아웃 0일 때 / cond:'out2' = 아웃 2일 때
+const TRAITS = {
+  // [스탯형]
+  captain: { name:'캡틴',     icon:'🎖️', vel:4, con:4, desc:'상시 구속+4 · 제구+4' },
+  ace:     { name:'에이스',   icon:'⭐', vel:2, con:2, desc:'상시 구속+2 · 제구+2' },
+  flash:   { name:'광속투구', icon:'⚡', vel:3, con:0, desc:'상시 구속+3' },
+  master:  { name:'마구연마', icon:'🌀', vel:0, con:3, desc:'상시 제구+3' },
+  sniper:  { name:'저격수',   icon:'🎯', vel:3, con:3, cond:'out0', desc:'아웃 0일 때 구속+3 · 제구+3' },
+  closer:  { name:'뒷심',     icon:'🔥', vel:3, con:3, cond:'out2', desc:'아웃 2일 때 구속+3 · 제구+3' },
+  // [구종·구위 특화형]
+  rising:       { name:'라이징 패스트볼', icon:'☄️', desc:'빠른볼: 삼진·뜬공 대폭↑ / 피홈런 미세↑' },
+  magichand:    { name:'마구의 장인',     icon:'🪄', desc:'변화구: 삼진·땅볼 대폭↑ / 4구 미세↑' },
+  bowling:      { name:'볼링공 구위',     icon:'🎳', desc:'장타 허용을 단타·땅볼로 변환' },
+  // [상황·멘탈형]
+  clutch:       { name:'강심장',          icon:'🧊', desc:'주자 있을 때 피안타↓·병살↑' },
+  slowstarter:  { name:'슬로우 스타터',   icon:'🐌', desc:'첫 아웃 전 불리, 이후 전체 유리' },
+  closerk:      { name:'클로저 본능',     icon:'🔒', desc:'2아웃에서 삼진 확률 극대화' },
+  // [하이리스크 하이리턴형]
+  fighter:      { name:'싸움닭',          icon:'🐔', desc:'4구 없음·아웃은 삼진만 / 비삼진은 안타·홈런' },
+  contactmaster:{ name:'맞춰잡기의 달인', icon:'🥎', desc:'삼진 없음·땅볼/뜬공만 (피홈런↓)' },
+  glassmental:  { name:'유리멘탈',        icon:'😨', desc:'장타 허용 직후 다음 타자에게 또 맞기 쉬움' },
+  // [성장·조건형]
+  rubberarm:    { name:'고무팔',          icon:'💪', desc:'적은 투구로 3아웃 시 다음 경기 보너스' },
+  stardom:      { name:'스타성',          icon:'🌟', desc:'연속 삼진 시 재화 2배 + 화려한 이펙트' },
+};
+const TRAIT_KEYS = Object.keys(TRAITS);
+
+// 월요일 랜덤 상점 아이템 풀 (가격 / 1경기 지속 효과)
+const ITEM_POOL = [
+  { key:'hp2',    name:'체력+2',        price:80,  icon:'❤️', desc:'다음 경기 시작 시 체력 +2 초과회복' },
+  { key:'cond1',  name:'컨디션+1',      price:50,  icon:'😎', desc:'다음 경기 컨디션 1단계 상승' },
+  { key:'dp',     name:'병살확률 X3',   price:100, icon:'🔁', desc:'다음 경기 땅볼 발생 시 2아웃 처리' },
+  { key:'nohr',   name:'홈런 금지',      price:150, icon:'🚫', desc:'다음 경기 홈런 확률 0%' },
+  { key:'rosin',  name:'마법의 로진백', price:80,  icon:'🪄', desc:'다음 경기 제구 +15' },
+  { key:'pas',    name:'불타는 파스',   price:80,  icon:'🔥', desc:'다음 경기 구속 +15' },
+  { key:'clover', name:'네잎클로버',    price:120, icon:'🍀', desc:'다음 경기 슬롯 일반→매직 승급' },
+  { key:'piggy',  name:'황금 저금통',   price:150, icon:'🐷', desc:'다음 경기 슬롯 GOLD 2배' },
+  { key:'owner',  name:'구단주의 응원', price:150, icon:'📣', desc:'다음 경기 슬롯 EXP 2배' },
+  { key:'gukbap', name:'국밥 한 그릇',  price:100, icon:'🍲', desc:'다음 경기 강판 기준 4실점으로 완화' },
+  { key:'devil',  name:'악마의 계약서', price:50,  icon:'😈', desc:'체력 무한, 단 1실점 시 즉시 강판' },
+  { key:'ticket', name:'야구장 암표',   price:50,  icon:'🎟️', desc:'상점 4개 즉시 리롤 (주 안 넘김)', reroll:true },
+  { key:'coupon', name:'비밀 특훈 쿠폰',price:350, icon:'📈', desc:'구속/제구/체력 중 랜덤 1개 영구 +1', instant:true },
+];
+const ITEM_MAP = {}; ITEM_POOL.forEach(it=> ITEM_MAP[it.key]=it);
+
+// 현재 적용되는 특성 보너스
+function traitBonus(){
+  const t = TRAITS[G.trait];
+  if(!t) return { vel:0, con:0 };
+  if(t.cond==='out0' && D.outs!==0) return { vel:0, con:0 };
+  if(t.cond==='out2' && D.outs!==2) return { vel:0, con:0 };
+  return { vel:t.vel||0, con:t.con||0 };
+}
+// 가중치 객체에서 키 1개 추첨
+function weightedPick(w){
+  let total=0; for(const k in w) total+=w[k];
+  let r=Math.random()*total;
+  for(const k in w){ if((r-=w[k])<0) return k; }
+  return Object.keys(w)[0];
+}
+
+// 영구 상태(저장 대상)
+let G = {
+  vel:55, con:55, maxHp:5,   // 영구 스탯
+  trait:null,                 // 투수 특성 (생성 시 결정)
+  exp:0, gold:0,
+  weekday:1,                  // 1=화요일 시작
+  week:1,
+  forcedBadNext:false,        // 다음날 강제 '나쁨'(조기강판 패널티)
+  created:false,              // 캐릭터 생성 완료 여부
+  totalOuts:0, totalRuns:0,   // 통산 기록 (아웃/실점) → 방어율 계산
+  itemNext:null,              // 다음 경기에 적용할 상점 아이템
+  dayCount:0,                 // 누적 경기 일차 (타자 스케일링용)
+  lastDayEff:false,           // 직전 경기 효율 마무리 여부 (고무팔)
+};
+
+// 하루(이닝) 단위 임시 상태
+let D = {
+  hp:5, outs:0, runs:0,
+  hits:0, ks:0, homers:0,    // 퀘스트용 누적 기록
+  bases:[false,false,false], // 1,2,3루
+  team:'LG',                 // 오늘의 상대 팀
+  lineup:[],                 // 오늘 상대할 타자 3명
+  batterIdx:0,
+  quests:[],                 // 오늘의 퀘스트 3개
+  cur:null,                  // 현재 타석 타자 (스케일링·각성 반영)
+  firstOutDone:false,        // 첫 아웃 여부 (슬로우 스타터)
+  lastXBH:false,             // 직전 장타 허용 (유리멘탈)
+  consecK:0,                 // 연속 삼진 (스타성)
+  pitches:0,                 // 이번 경기 투구 수 (고무팔)
+  rubberActive:false,        // 고무팔 보너스 발동
+  starBonus:false,           // 스타성 재화 2배 발동
+  cond:'normal',
+  item:null,                 // 이번 경기에 발동 중인 상점 아이템
+  infHp:false,               // 악마의 계약서: 체력 무한
+  shop:[],                   // 월요일 상점 진열 4개
+  busy:false,
+};
+
+/* =========================================================
+   저장 / 불러오기
+   ========================================================= */
+const SAVE_KEY = 'jizon_pitcher_save_v1';
+function save(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify(G)); }catch(e){} }
+function load(){
+  try{
+    const s = localStorage.getItem(SAVE_KEY);
+    if(s){ G = Object.assign(G, JSON.parse(s)); }
+  }catch(e){}
+}
+
+/* =========================================================
+   유틸
+   ========================================================= */
+const $ = id => document.getElementById(id);
+const rand = (a,b) => Math.random()*(b-a)+a;
+const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
+function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+const comma = n => n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+// hex 명암 조절 (p>0 밝게, p<0 어둡게)
+function shade(hex, p){
+  hex = (hex||'#444').replace('#','');
+  if(hex.length===3) hex = hex.split('').map(c=>c+c).join('');
+  const ch = i => parseInt(hex.slice(i,i+2),16);
+  const f = c => Math.max(0, Math.min(255, Math.round(p>=0 ? c+(255-c)*p : c*(1+p))));
+  const h = c => f(c).toString(16).padStart(2,'0');
+  return '#'+h(ch(0))+h(ch(2))+h(ch(4));
+}
+// 전투력 환산
+function powerOfBatter(b){ return (b.contact + b.power + b.eye) * 350 + b.power*120; }
+function powerOfPitcher(){ return (G.vel + G.con + G.maxHp*8) * 380; }
+// 배열에서 중복 없이 n개 랜덤 추출
+function sampleN(arr, n){
+  const copy = arr.slice();
+  const out = [];
+  for(let i=0;i<n && copy.length;i++){
+    out.push(copy.splice(Math.floor(Math.random()*copy.length),1)[0]);
+  }
+  return out;
+}
+
+/* =========================================================
+   효과음 (WebAudio 합성 — 파일 불필요)
+   ========================================================= */
+let actx = null;
+function audio(){
+  if(!actx){ try{ actx = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ return null; } }
+  if(actx && actx.state==='suspended') actx.resume();
+  return actx;
+}
+function tone(freq, dur, type='square', vol=0.18, slideTo=null){
+  const c=audio(); if(!c) return;
+  const t=c.currentTime, o=c.createOscillator(), g=c.createGain();
+  o.type=type; o.frequency.setValueAtTime(freq,t);
+  if(slideTo) o.frequency.exponentialRampToValueAtTime(Math.max(1,slideTo), t+dur);
+  g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(0.0001, t+dur);
+  o.connect(g); g.connect(c.destination); o.start(t); o.stop(t+dur);
+}
+function noise(dur, vol=0.3, freq=1500, hp=false){
+  const c=audio(); if(!c) return;
+  const t=c.currentTime, n=Math.floor(c.sampleRate*dur);
+  const buf=c.createBuffer(1,n,c.sampleRate), d=buf.getChannelData(0);
+  for(let i=0;i<n;i++) d[i]=Math.random()*2-1;
+  const src=c.createBufferSource(); src.buffer=buf;
+  const f=c.createBiquadFilter(); f.type=hp?'highpass':'lowpass'; f.frequency.value=freq;
+  const g=c.createGain(); g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+  src.connect(f); f.connect(g); g.connect(c.destination); src.start(t); src.stop(t+dur);
+}
+const SFX = {
+  pitch(){ noise(0.16, 0.10, 1400); tone(620,0.14,'sawtooth',0.07,260); },
+  hit(){ noise(0.05, 0.40, 3500, true); tone(880,0.09,'square',0.22,1500); },          // 깡!
+  homerun(){ noise(0.06,0.45,4000,true); tone(420,0.5,'square',0.2,1700); setTimeout(()=>tone(1568,0.18,'triangle',0.18),120); },
+  out(){ tone(190,0.13,'sine',0.25,90); noise(0.05,0.12,500); },                        // 포구 thud
+  strikeout(){ tone(840,0.14,'square',0.16,200); setTimeout(()=>tone(420,0.12,'square',0.14,140),80); },
+  tick(){ tone(1250,0.025,'square',0.06); },
+  reward(){ tone(1318,0.08,'square',0.13); setTimeout(()=>tone(1760,0.1,'square',0.13),80); },
+  jackpot(){ [523,659,784,1046,1318].forEach((f,i)=> setTimeout(()=>tone(f,0.16,'square',0.18),i*90)); },
+  awaken(){ tone(160,0.35,'sawtooth',0.22,70); setTimeout(()=>tone(120,0.4,'square',0.18,60),120); },  // 불길한 경고음
+};
+
+/* 중앙 임팩트 버스트 (이모지 팝) */
+function burst(text, cls){
+  const f=$('field'); if(!f) return;
+  const e=document.createElement('div');
+  e.className='fxBurst'+(cls?' '+cls:'');
+  e.textContent=text;
+  f.appendChild(e);
+  setTimeout(()=>e.remove(), 750);
+}
+/* 카메라 펀치(줌) */
+function punch(strong){
+  const f=$('field'); if(!f) return;
+  f.classList.remove('punch','punchBig'); void f.offsetWidth;
+  f.classList.add(strong?'punchBig':'punch');
+  setTimeout(()=>f.classList.remove('punch','punchBig'), 360);
+}
+/* 화면 번쩍(홈런) */
+function screenFlash(){
+  const f=$('field'); if(!f) return;
+  const e=document.createElement('div'); e.className='hrFlash';
+  f.appendChild(e); setTimeout(()=>e.remove(), 320);
+}
+
+/* =========================================================
+   스탯 계산
+   ========================================================= */
+// 현재 적용 스탯(컨디션 + 방전 반영)
+function effStats(discharged){
+  const mod = COND[D.cond].mod;
+  const pen = discharged ? DISCHARGE_PEN : 0;
+  const tb = traitBonus();
+  const iv = D.item==='pas' ? 15 : 0;     // 불타는 파스: 구속 +15
+  const ic = D.item==='rosin' ? 15 : 0;   // 마법의 로진백: 제구 +15
+  return {
+    vel: Math.max(1, G.vel + mod - pen + tb.vel + iv),
+    con: Math.max(1, G.con + mod - pen + tb.con + ic),
+  };
+}
+
+// 아웃 확률 계산
+// 최종확률 = 기본확률 + ((유리스탯 - 불리스탯)/2)  ← 기획서 공식
+// 빠른볼: 투수[구속] vs 타자[파워] / 변화구: 투수[제구] vs 타자[선구안]
+// 공통: 투수[종합] vs 타자[컨택]  → 주매치 60% + 공통매치 40% 가중
+function outProbability(type, eff, batter){
+  const overall = Math.round((eff.vel + eff.con)/2); // 종합
+  let primary;
+  if(type==='fast'){
+    primary = BASE_OUT + (eff.vel - batter.power)/2;   // 구속 vs 파워
+  }else{
+    primary = BASE_OUT + (eff.con - batter.eye)/2;     // 제구 vs 선구안
+  }
+  const common = BASE_OUT + (overall - batter.contact)/2; // 종합 vs 컨택
+  const p = primary*0.6 + common*0.4;
+  return clamp(Math.round(p), 5, 95);
+}
+
+/* ===== 특성 반영 결과 판정 =====
+   기본 분포 — 아웃 70%(땅볼25·플라이25·삼진20) / 출루 30%(단타15·2루타4·3루타1·홈런4·4구6)
+   · 아웃 vs 출루 비율은 outProbability(스탯/컨디션/특성)가 결정 (중립 70%)
+   · 아래 함수는 '아웃이면 어떤 아웃', '출루면 어떤 출루'의 세부 비율 담당
+*/
+// 아웃 종류 추첨 (k=삼진 / ground=땅볼 / fly=뜬공 / dp=병살)
+function pickOutType(type, tr){
+  let w = { k:20, ground:25, fly:25, dp:0 };                      // 기본 비율(20:25:25)
+  if(tr==='rising' && type==='fast')      w = { k:34, ground:8,  fly:42, dp:0 };
+  else if(tr==='magichand' && type==='curve') w = { k:34, ground:42, fly:6, dp:2 };
+  else if(tr==='contactmaster')           w = { k:0,  ground:48, fly:48, dp:4 };
+  if(tr==='closerk' && D.outs===2)        w = { k:80, ground:10, fly:8,  dp:2 };
+  if(tr==='fighter')                      return 'k';             // 싸움닭: 아웃은 삼진만
+  if(tr==='clutch' && D.bases.some(x=>x)){ w.dp += 20; w.ground += 6; }
+  return weightedPick(w);
+}
+// 출루 종류 추첨 (walk=4구 / single/double/triple/hr)
+function pickOnBase(type, tr){
+  let w = { walk:6, single:15, double:4, triple:1, hr:4 };        // 기본 비율
+  if(tr==='magichand' && type==='curve') w.walk += 10;           // 마구장인: 4구↑
+  if(tr==='rising') w.hr += 3;                                    // 라이징: 피홈런 미세↑
+  if(tr==='glassmental' && D.lastXBH){ w.double+=6; w.triple+=2; w.hr+=5; } // 유리멘탈
+  if(tr==='fighter') w = { walk:0, single:15, double:0, triple:0, hr:8 };   // 싸움닭: 4구0, 안타/홈런만
+  const k = weightedPick(w);
+  if(k==='walk') return { kind:'walk' };
+  let advance = { single:1, double:2, triple:3, hr:4 }[k];
+  // 볼링공 구위: 장타를 단타 또는 땅볼아웃으로 변환
+  if(tr==='bowling' && advance>=2){
+    if(rand(0,100) < 45) return { kind:'out', outType:'ground', bowled:true };
+    advance = 1;
+  }
+  if(D.item==='nohr' && advance===4) advance = 3;                 // 홈런 금지 아이템
+  return { kind:'hit', advance };
+}
+// 한 타석 결과 종합 산출
+function computeResult(type, eff, b){
+  const tr = G.trait;
+  let outProb = outProbability(type, eff, b);
+  const runnersOn = D.bases.some(x=>x);
+  if(tr==='clutch' && runnersOn) outProb += 12;                    // 강심장
+  if(tr==='slowstarter') outProb += D.firstOutDone ? 7 : -12;      // 슬로우 스타터
+  if(tr==='rubberarm' && D.rubberActive) outProb += 8;            // 고무팔
+  if(tr==='glassmental' && D.lastXBH) outProb -= 16;             // 유리멘탈
+  outProb = clamp(outProb, 5, 97);
+
+  if(rand(0,100) < outProb){
+    return { kind:'out', outType: pickOutType(type, tr) };
+  }
+  return pickOnBase(type, tr);
+}
+
+/* =========================================================
+   화면 갱신
+   ========================================================= */
+function currentBatter(){ return D.lineup[D.batterIdx % D.lineup.length]; }
+
+// 일차에 따른 타자 계단식 스케일링 보너스
+function dayScaleBonus(){
+  const d = G.dayCount || 0;
+  if(d>=101) return 20;
+  if(d>=61)  return 10;
+  if(d>=31)  return 5;
+  return 0;
+}
+// 현재 타석 타자 생성 (스케일링 + 5% 각성)
+function rollBatter(){
+  const raw = currentBatter();
+  const scale = dayScaleBonus();
+  const awake = Math.random() < 0.05;       // 5% 각성
+  const buff = scale + (awake ? 30 : 0);
+  const cur = {
+    raw, team:raw.team, desc:raw.desc, name:raw.name,
+    contact: raw.contact + buff,
+    power:   raw.power   + buff,
+    eye:     raw.eye     + buff,
+    awake, scale,
+  };
+  cur.contactGrade = gradeFromVal(cur.contact);
+  cur.powerGrade   = gradeFromVal(cur.power);
+  cur.eyeGrade     = gradeFromVal(cur.eye);
+  D.cur = cur;
+  if(awake) SFX.awaken && SFX.awaken();
+  return cur;
+}
+
+function renderHUD(){
+  $('hudDay').textContent = `${G.dayCount||0}일차 · ${WEEKDAYS[G.weekday]}요일`;
+  $('hudVel').textContent = G.vel;
+  $('hudCon').textContent = G.con;
+  $('hudExp').textContent = comma(G.exp);
+  $('hudGold').textContent = comma(G.gold);
+  // 투수 게이지 바 (구속/제구) — 특성·컨디션 반영된 현재 능력치
+  renderPitcherStats();
+  // 특성 표시
+  const tr = TRAITS[G.trait];
+  $('hudTrait').textContent = tr ? `${tr.icon}${tr.name} ⓘ` : '';
+  // 오늘의 상대 팀
+  const t = TEAMS[D.team];
+  if(t){
+    const el = $('hudTeam');
+    el.textContent = `🆚 ${t.emoji}${t.short}`;
+    el.style.color = '#fff';
+  }
+}
+
+// 투수 현재 능력치(특성+컨디션 반영, 방전 제외) 표시 — 보너스는 색으로 강조
+function renderPitcherStats(){
+  const tb = traitBonus();
+  const mod = COND[D.cond] ? COND[D.cond].mod : 0;
+  const effVel = Math.max(1, G.vel + mod + tb.vel);
+  const effCon = Math.max(1, G.con + mod + tb.con);
+  const colorOf = d => d>0 ? '#5cff9a' : (d<0 ? '#ff8a8a' : '#fff');
+  $('barVel').style.width = Math.min(100, effVel) + '%';
+  $('valVel').textContent = effVel;
+  $('valVel').style.color = colorOf(effVel - G.vel);
+  $('barCon').style.width = Math.min(100, effCon) + '%';
+  $('valCon').textContent = effCon;
+  $('valCon').style.color = colorOf(effCon - G.con);
+  renderCareer();
+}
+
+// 통산 아웃 / 방어율(ERA = 자책 *9 / 이닝, 이닝 = 아웃/3)
+function renderCareer(){
+  const outs = G.totalOuts||0, runs = G.totalRuns||0;
+  const era = outs>0 ? (runs * 27 / outs) : 0;
+  if($('totalOuts')) $('totalOuts').textContent = outs;
+  if($('eraVal')) $('eraVal').textContent = era.toFixed(2);
+}
+
+// 팀 엠블럼(로고형 배지) HTML
+function teamEmblem(teamKey){
+  const m = TEAM_META[teamKey] || { color:'#444', emoji:'⚾' };
+  return `<div class="teamLogo" style="background:${m.color}">`
+    + `<span class="tlEmoji">${m.emoji}</span>`
+    + `<span class="tlShort">${teamKey}</span></div>`;
+}
+
+function renderBatter(){
+  if(!D.cur) rollBatter();
+  const b = D.cur;
+  $('batterFace').innerHTML = teamEmblem(b.team);   // 팀 엠블럼
+  const panel = $('batterPanel');
+  // 타자 박스 색: 평소엔 팀 컬러, 각성 시 위협적인 핏빛
+  if(b.awake){
+    panel.classList.add('awakened');
+    panel.style.background = 'linear-gradient(135deg,#ff1f1f,#3a0000 78%)';
+    panel.style.boxShadow = 'inset 0 0 0 2px #ff5a5a, 0 0 16px #ff0000aa, inset -3px -3px 0 rgba(0,0,0,.45)';
+    $('batterName').innerHTML = `<span class="awakeTag">[각성한]</span> ${b.name}`;
+  }else{
+    panel.classList.remove('awakened');
+    const tc = (TEAM_META[b.team] || { color:'#7a1320' }).color;
+    panel.style.background = `linear-gradient(135deg, ${shade(tc,0.32)}, ${shade(tc,-0.45)} 76%)`;
+    panel.style.boxShadow = `inset 0 0 0 2px ${shade(tc,0.45)}99, 0 0 10px ${tc}66, inset -3px -3px 0 rgba(0,0,0,.45)`;
+    $('batterName').textContent = b.name;
+  }
+  const scaleTxt = b.scale>0 ? ` ▲+${b.scale}` : '';
+  $('batterDesc').textContent = '「' + b.desc + '」' + scaleTxt;
+  const tier = gradeFromVal(Math.round((b.contact + b.power + b.eye)/3));
+  const tt = $('tierTag');
+  tt.textContent = b.awake ? '각성' : tier;
+  tt.style.background = b.awake ? '#ff1f1f' : GRADE_COLOR[tier];
+  tt.style.color = b.awake ? '#fff' : '#000';
+  const set=(id,g)=>{ const el=$(id); el.textContent=g; el.style.color=GRADE_COLOR[g]; };
+  set('gContact', b.contactGrade); set('gPower', b.powerGrade); set('gEye', b.eyeGrade);
+  // 게이지 바 + 수치 (0~100 비례, 수치는 실제값)
+  const bar=(barId,valId,v)=>{ $(barId).style.width=Math.min(100,Math.max(0,v))+'%'; $(valId).textContent=v; };
+  bar('barContact','valContact', b.contact);
+  bar('barPower','valPower', b.power);
+  bar('barEye','valEye', b.eye);
+  if(b.awake) burst('⚠️','awaken');   // 각성 등장 연출
+  renderNext();
+  renderProbs();
+}
+
+// NEXT 타자 예고 (오늘 라인업 3명, 현재 타자 강조)
+function renderNext(){
+  const box = $('nextCards');
+  box.innerHTML = '';
+  D.lineup.forEach((b,i)=>{
+    const tier = gradeFromVal(Math.round((b.contact + b.power + b.eye)/3));
+    const card = document.createElement('div');
+    card.className = 'npCard' + (i === (D.batterIdx % D.lineup.length) ? ' onDeck' : '');
+    card.innerHTML = `<div class="npName">${b.name}</div>`
+      + `<div class="npGrade" style="color:${GRADE_COLOR[tier]}">${tier}</div>`;
+    box.appendChild(card);
+  });
+}
+
+/* ===== 퀘스트 (현재 비활성) ===== */
+function buildQuests(){
+  D.quests = [];   // 퀘스트 미사용
+}
+function questProgress(q){
+  return D[q.metric]; // outs/ks/runs/hits/homers
+}
+function grantQuest(q){
+  if(q.done) return;
+  q.done = true;
+  G.exp += q.exp||0;
+  G.gold += q.gold||0;
+  save();
+  renderHUD();
+}
+// 누적형(reach) 즉시 평가
+function updateQuests(){
+  D.quests.forEach(q=>{
+    if(q.type==='reach' && !q.done && questProgress(q) >= q.target) grantQuest(q);
+  });
+  renderQuests();
+}
+// 하루 종료 시 수비형(limit) 평가
+function finalizeQuests(){
+  let earned = 0;
+  D.quests.forEach(q=>{
+    if(q.type==='limit' && !q.done && questProgress(q) <= q.target){ grantQuest(q); earned++; }
+  });
+  renderQuests();
+  return earned;
+}
+function renderQuests(){
+  const box = $('questList');
+  if(!box) return;   // 퀘스트 패널 제거됨
+  box.innerHTML = '';
+  D.quests.forEach(q=>{
+    const prog = questProgress(q);
+    const row = document.createElement('div');
+    row.className = 'qItem' + (q.done ? ' done' : '');
+    const rwd = (q.exp?`EXP+${q.exp}`:'') + (q.gold?`${q.exp?' ':''}G+${q.gold}`:'');
+    const progTxt = q.type==='reach' ? `(${Math.min(prog,q.target)}/${q.target})` : `(${prog}/${q.target}↓)`;
+    row.innerHTML = `<span class="qChk">${q.done?'✅':'⬜'}</span>`
+      + `<span class="qLabel">${q.label}</span>`
+      + `<span class="qProg">${progTxt}</span>`
+      + `<span class="qRwd">💎${rwd}</span>`;
+    box.appendChild(row);
+  });
+}
+
+function renderProbs(){
+  const b = D.cur || rollBatter();
+  const eff = effStats(D.hp<=0);
+  $('probFast').textContent  = `아웃 ${outProbability('fast', eff, b)}%`;
+  $('probCurve').textContent = `아웃 ${outProbability('curve', eff, b)}%`;
+}
+
+function renderScoreboard(){
+  for(let i=0;i<3;i++) $('out'+i).classList.toggle('on', D.outs>i);
+  $('scoreRuns').textContent = D.runs;
+  // 다이아몬드 베이스 주자 표시 (0=1루,1=2루,2=3루)
+  $('base1').classList.toggle('on', D.bases[0]);
+  $('base2').classList.toggle('on', D.bases[1]);
+  $('base3').classList.toggle('on', D.bases[2]);
+  renderPitcherStats();   // 조건부 특성(저격수/뒷심)이 아웃카운트에 따라 반영
+}
+
+function renderHP(){
+  const bar = $('hpBar');
+  bar.innerHTML = '';
+  const total = D.infHp ? G.maxHp : Math.max(G.maxHp, D.hp);  // 초과회복 시 칸 추가
+  for(let i=0;i<total;i++){
+    const c = document.createElement('div');
+    const filled = D.infHp || i < D.hp;
+    let cls = 'hpCell';
+    if(filled) cls += (!D.infHp && D.hp<=1 ? ' low full' : ' full');
+    if(i >= G.maxHp) cls += ' over';     // 최대치 초과 칸
+    c.className = cls;
+    bar.appendChild(c);
+  }
+  $('hpNum').textContent = D.infHp ? '∞' : `${Math.max(0,D.hp)} / ${G.maxHp}`;
+  $('dischargeTag').textContent = (!D.infHp && D.hp<=0) ? '⚠ 방전! 다음 투구 구속·제구 -10' : '';
+  $('condText').textContent = '컨디션: ' + COND[D.cond].label
+    + (COND[D.cond].mod!==0 ? ` (스탯 ${COND[D.cond].mod>0?'+':''}${COND[D.cond].mod})` : '');
+}
+
+function renderAll(){ renderHUD(); renderBatter(); renderScoreboard(); renderHP(); }
+
+/* =========================================================
+   하루 시작
+   ========================================================= */
+function startDay(){
+  // 컨디션 결정
+  if(G.forcedBadNext){
+    D.cond = 'bad';
+    G.forcedBadNext = false;
+  }else{
+    const r = Math.random();
+    D.cond = r<0.2 ? 'good' : (r<0.85 ? 'normal' : 'bad');
+  }
+  // 상점 아이템 발동 (1경기 한정) → 소비
+  D.item = G.itemNext || null;
+  G.itemNext = null;
+  D.infHp = (D.item==='devil');
+  // 컨디션+1 아이템: 1단계 상승
+  if(D.item==='cond1'){
+    D.cond = D.cond==='bad' ? 'normal' : 'good';
+  }
+  save();
+
+  G.dayCount = (G.dayCount||0) + 1;   // 누적 일차 (타자 스케일링)
+
+  // 오늘의 상대 팀 → 랜덤 팀에서 랜덤 3명
+  D.team = pick(TEAM_KEYS);
+  D.lineup = sampleN(TEAMS[D.team].batters, 3);
+  D.batterIdx = 0;
+  rollBatter();   // 첫 타자 (스케일링·각성 결정)
+
+  // 체력: 기본 maxHp, 체력+2 아이템이면 초과회복, 악마면 무한
+  D.hp = G.maxHp + (D.item==='hp2' ? 2 : 0);
+  D.outs = 0; D.runs = 0;
+  D.hits = 0; D.ks = 0; D.homers = 0;
+  D.bases = [false,false,false];
+  // 특성용 경기 상태 리셋
+  D.firstOutDone = false; D.lastXBH = false; D.consecK = 0;
+  D.pitches = 0; D.starBonus = false;
+  D.rubberActive = (G.trait==='rubberarm' && G.lastDayEff);   // 고무팔: 직전 효율 마무리 시 발동
+  buildQuests();
+
+  // 투구 잠금 → 상대 팀 소개 배너 후 시작
+  D.busy = true;
+  $('btnFast').disabled = true;
+  $('btnCurve').disabled = true;
+  renderAll();
+  renderQuests();
+
+  const t = TEAMS[D.team];
+  const names = D.lineup.map(b=>b.name).join(' · ');
+  const it = ITEM_MAP[D.item];
+  const desc = it ? `🎁 ${it.icon}${it.name} 발동!` : `상대 타자: ${names}`;
+  showBanner(`${t.emoji} 오늘의 상대: ${t.name}`, desc, 1600, ()=>{
+    D.busy = false;
+    $('btnFast').disabled = false;
+    $('btnCurve').disabled = false;
+  });
+}
+
+/* =========================================================
+   투구 (핵심 배틀 로직)
+   ========================================================= */
+function pitch(type){
+  if(D.busy) return;
+  if(G.weekday===0) return; // 월요일은 배틀 없음
+
+  SFX.pitch();   // 투구 효과음
+  D.busy = true;
+  $('btnFast').disabled = true;
+  $('btnCurve').disabled = true;
+
+  // 1) 방전 판정 (체력 0에서 투구 → 패널티). 악마의 계약서면 방전 없음
+  const discharged = !D.infHp && D.hp <= 0;
+  const eff = effStats(discharged);
+
+  // 2) 체력 소모 (-1). 악마의 계약서면 무한 체력 → 소모 없음
+  if(!D.infHp) D.hp = Math.max(0, D.hp - 1);
+  renderHP();
+
+  // 3) 결과 산출 (특성 반영)
+  const b = D.cur || rollBatter();
+  D.pitches++;
+  const result = computeResult(type, eff, b);
+
+  // 공 애니메이션
+  const ball = $('ball');
+  ball.className = '';
+  void ball.offsetWidth;
+  ball.classList.add(type==='fast' ? 'pitch-fast' : 'pitch-curve');
+
+  const delay = type==='fast' ? 300 : 440;
+  setTimeout(()=>{ resolvePitch(result, type, discharged); }, delay);
+}
+
+function resolvePitch(result, type, discharged){
+  const field = $('field');
+  const big = $('popBig');
+  const sub = $('popSub');
+  field.classList.remove('flash','shake','shakeBig'); void field.offsetWidth;
+
+  if(result.kind === 'out'){
+    // ===== 아웃 =====
+    let ot = result.outType;
+    const labels = {
+      k:      type==='fast' ? ['삼진!','⚡ 헛스윙 三振'] : ['루킹 삼진','👀 멈춰선 방망이'],
+      ground: ['땅볼 아웃','🥎 빗맞은 타구'],
+      fly:    ['뜬공 아웃','☁️ 평범한 뜬공'],
+      dp:     ['병살타!','🔁 더블 플레이'],
+    };
+    let [label, subText] = labels[ot] || labels.fly;
+    if(result.bowled){ subText = '🎳 볼링공 구위! 땅볼 처리'; }
+    const isK = (ot==='k');
+    let dpExtra = (ot==='dp') ? 1 : 0;
+    // 병살확률 X3 아이템: 땅볼 → 2아웃
+    if(D.item==='dp' && ot==='ground'){ label='병살타!'; subText='🔁 병살 처리 · 2아웃!'; dpExtra=1; }
+
+    if(isK){ D.ks++; D.consecK++; } else { D.consecK = 0; }
+    D.firstOutDone = true;
+    D.lastXBH = false;
+    // 스타성: 연속 삼진 2개+ → 재화 2배 + 화려한 연출
+    D.starBonus = (G.trait==='stardom' && isK && D.consecK>=2);
+
+    big.textContent = label; big.style.color = 'var(--hp)';
+    sub.textContent = subText;
+    field.classList.add('flash');
+    showPopup();
+    if(isK){ SFX.strikeout(); burst('❌','k'); }
+    else if(ot==='ground'||ot==='dp'){ SFX.out(); burst('💨','dust'); }
+    else { SFX.out(); burst('🧤','catch'); }
+    punch(false);
+    if(D.starBonus){ screenFlash(); burst('🌟','star'); }
+
+    D.outs += 1 + dpExtra;
+    G.totalOuts += 1 + dpExtra;
+    save();
+    renderScoreboard();
+    updateQuests();
+
+    setTimeout(()=>{
+      field.classList.remove('flash');
+      runSlot(()=>{ D.outs>=3 ? endDay('success') : nextBatter(); });
+    }, 650);
+    return;
+  }
+
+  // ===== 4구(볼넷) =====
+  if(result.kind === 'walk'){
+    const scored = advanceRunners(1);
+    D.runs += scored; G.totalRuns += scored;
+    D.consecK = 0; D.lastXBH = false;
+    if(scored>0) save();
+    big.textContent = '볼넷 (4구)'; big.style.color = '#ffd23f';
+    sub.textContent = scored>0 ? `🚶 출루 허용 +${scored}실점!` : '🚶 출루 허용';
+    showPopup(); SFX.out(); burst('🚶','walk'); punch(false);
+    field.classList.add('shake');
+    renderScoreboard(); updateQuests();
+    finishOnBase(field);
+    return;
+  }
+
+  // ===== 안타/실점 =====
+  const advance = result.advance;
+  const scored = advanceRunners(advance);
+  D.runs += scored; G.totalRuns += scored;
+  if(scored>0) save();
+  D.hits++;
+  if(advance===4) D.homers++;
+  D.consecK = 0;
+  D.lastXBH = (advance>=2);   // 유리멘탈 추적
+
+  const hl = { 1:['안타!','🏃 단타'], 2:['2루타!','💥 깊은 타구'], 3:['3루타!','🔥 폭주!'], 4:['홈런!!','🚀 담장 넘어!'] }[advance];
+  big.textContent = hl[0]; big.style.color = 'var(--fast)';
+  sub.textContent = scored>0 ? `${hl[1]}  +${scored}실점!` : hl[1];
+  showPopup();
+  renderScoreboard(); updateQuests();
+  if(advance===4){ SFX.homerun(); screenFlash(); burst('🚀','hr'); punch(true); field.classList.add('shakeBig'); }
+  else { SFX.hit(); burst('💥','hit'); punch(false); field.classList.add('shake'); }
+  finishOnBase(field);
+}
+
+// 출루(안타/4구) 후 처리: 강판 체크 → 다음 타자
+function finishOnBase(field){
+  const hookAt = D.item==='devil' ? 1 : (D.item==='gukbap' ? 4 : 3);
+  setTimeout(()=>{
+    field.classList.remove('shake','shakeBig');
+    D.runs>=hookAt ? endDay('hook') : nextBatter();
+  }, 750);
+}
+
+// 주자 진루 처리 → 득점 수 반환
+function advanceRunners(adv){
+  let runs = 0;
+  const nb = [false,false,false];
+  // 기존 주자 진루
+  for(let i=2;i>=0;i--){
+    if(D.bases[i]){
+      const np = i + adv;
+      if(np>=3) runs++; else nb[np]=true;
+    }
+  }
+  // 타자 진루 (adv-1 베이스 도달)
+  const bp = adv-1;
+  if(bp>=3) runs++; else nb[bp]=true;
+  D.bases = nb;
+  return runs;
+}
+
+function showPopup(){
+  const popup = $('popup');
+  popup.classList.remove('show-pop');
+  void popup.offsetWidth;
+  popup.classList.add('show-pop');
+}
+function clearPopup(){
+  $('popBig').textContent=''; $('popSub').textContent='';
+  $('popup').classList.remove('show-pop');
+}
+
+// 다음 타석
+function nextBatter(){
+  clearPopup();
+  D.batterIdx = (D.batterIdx + 1) % D.lineup.length;
+  rollBatter();   // 새 타석 타자 (스케일링·각성 결정)
+  D.busy = false;
+  $('btnFast').disabled = false;
+  $('btnCurve').disabled = false;
+  renderBatter();
+  renderHP();
+}
+
+/* =========================================================
+   슬롯머신 보상 (아웃 1개당 1회)
+   ========================================================= */
+const SLOT_FACES = ['🪙','💰','⭐','💎','🎖️','👑','⚡','🍀'];
+function runSlot(done){
+  const slot = $('slot');
+  slot.classList.add('on');
+  $('slotConfirm').style.display = 'none';   // 확인 버튼 숨김(회전 중)
+  $('slotResult').textContent=''; $('slotResult').className='slotResult';
+  $('slotReward').textContent='';
+  $('slotEye').textContent = `${Math.min(D.outs,3)}/3`;  // 투수의 눈 = 잡은 아웃
+  const lever = $('lever');
+  if(lever){ lever.classList.remove('pull'); void lever.offsetWidth; lever.classList.add('pull'); }
+  const reels=[$('r0'),$('r1'),$('r2')];
+
+  // 등급 추첨
+  const reward = rollReward();
+
+  // 릴 회전
+  let ticks=0;
+  const spin = setInterval(()=>{
+    reels.forEach(r=> r.textContent = pick(SLOT_FACES));
+    SFX.tick();
+    ticks++;
+  }, 70);
+
+  setTimeout(()=>{
+    clearInterval(spin);
+    reels.forEach(r=> r.textContent = reward.face);
+    const res=$('slotResult');
+    res.textContent = reward.tier;
+    res.style.color = reward.color;
+    if(reward.jackpot){ res.classList.add('jackpot'); SFX.jackpot(); }
+    else SFX.reward();
+    $('slotReward').textContent = reward.desc;
+
+    applyReward(reward);
+    renderHUD();
+
+    // 자동으로 사라지지 않고 '확인' 버튼으로 닫기
+    const btn = $('slotConfirm');
+    btn.style.display = 'block';
+    btn.onclick = () => {
+      btn.onclick = null;
+      btn.style.display = 'none';
+      slot.classList.remove('on');
+      done && done();
+    };
+  }, 900);
+}
+
+// 확률 테이블 추첨
+function rollReward(){
+  const r = Math.random()*100;
+  // 전설1% / 에픽5% / 레어10% / 매직30% / 일반54%
+  if(r < 1){
+    return { kind:'legend', tier:'⭐전설 JACKPOT⭐', face:'👑',
+      color:'var(--gS)', jackpot:true,
+      desc:'영구 구속+1 · 제구+1 · 체력+1!' };
+  }else if(r < 6){
+    return { kind:'epic', tier:'에픽!', face:'🎖️', color:'var(--gB)',
+      desc:'EXP +100 & GOLD +100', exp:100, gold:100 };
+  }else if(r < 16){
+    const g = Math.random()<0.5;
+    return { kind:'rare', tier:'레어!', face:'💎', color:'var(--gC)',
+      desc: g?'GOLD +100':'EXP +100', exp:g?0:100, gold:g?100:0 };
+  }else if(r < 46){
+    const g = Math.random()<0.5;
+    return { kind:'magic', tier:'매직', face:'⭐', color:'var(--gA)',
+      desc: g?'GOLD +30':'EXP +30', exp:g?0:30, gold:g?30:0 };
+  }else{
+    // 네잎클로버: 일반 → 매직 승급
+    if(D.item==='clover'){
+      const g = Math.random()<0.5;
+      return { kind:'magic', tier:'매직 🍀', face:'⭐', color:'var(--gA)',
+        desc: g?'GOLD +30':'EXP +30', exp:g?0:30, gold:g?30:0 };
+    }
+    const g = Math.random()<0.5;
+    return { kind:'normal', tier:'일반', face: g?'🪙':'📘', color:'var(--dim)',
+      desc: g?'GOLD +10':'EXP +10', exp:g?0:10, gold:g?10:0 };
+  }
+}
+
+function applyReward(rw){
+  if(rw.kind==='legend'){
+    G.vel += 1; G.con += 1; G.maxHp += 1;
+  }else{
+    let exp = rw.exp||0, gold = rw.gold||0;
+    if(D.item==='owner') exp *= 2;   // 구단주의 응원: EXP 2배
+    if(D.item==='piggy') gold *= 2;  // 황금 저금통: GOLD 2배
+    if(D.starBonus){ exp *= 2; gold *= 2; }  // 스타성: 연속 삼진 보상 2배
+    G.exp += exp;
+    G.gold += gold;
+  }
+  D.starBonus = false;
+  save();
+}
+
+/* =========================================================
+   하루 종료 / 다음 날
+   ========================================================= */
+// 특성 설명 토스트 (특성 칩 클릭 시)
+function showTraitInfo(){
+  const tr = TRAITS[G.trait];
+  const app = $('app');
+  let t = $('traitToast');
+  if(t) t.remove();
+  if(!tr){
+    t = document.createElement('div'); t.id='traitToast';
+    t.innerHTML = `<div class="ttName">특성 없음</div><div class="ttDesc">아직 특성이 없습니다</div>`;
+  }else{
+    t = document.createElement('div'); t.id='traitToast';
+    t.innerHTML = `<div class="ttName">${tr.icon} ${tr.name} 특성</div><div class="ttDesc">${tr.desc}</div>`;
+  }
+  app.appendChild(t);
+  t.onclick = ()=> t.remove();
+  setTimeout(()=>{ if(t && t.parentNode) t.remove(); }, 3000);
+}
+
+// 중앙 배너 표시 (제목/설명/표시시간/콜백)
+function showBanner(title, desc, dur, cb){
+  const banner=$('banner');
+  $('bannerT').textContent = title;
+  $('bannerD').textContent = desc;
+  banner.classList.remove('on'); void banner.offsetWidth;
+  banner.classList.add('on');
+  setTimeout(()=>{
+    banner.classList.remove('on');
+    cb && cb();
+  }, dur);
+}
+
+function endDay(reason){
+  D.busy = true;
+  $('btnFast').disabled = true;
+  $('btnCurve').disabled = true;
+
+  // 수비형 퀘스트 정산
+  const qEarned = finalizeQuests();
+  // 고무팔: 적은 투구로 3아웃 마무리 → 다음 경기 보너스 플래그
+  G.lastDayEff = (reason==='success' && D.pitches <= 4);
+
+  let t, d;
+  if(reason==='hook'){
+    t = '🚨 조기 강판!';
+    d = '3실점… 내일은 컨디션 「나쁨」';
+    G.forcedBadNext = true;
+  }else{
+    t = '✅ 이닝 종료 (3아웃)';
+    d = '깔끔한 마무리! 하루 끝.';
+    if(G.lastDayEff && G.trait==='rubberarm') d += ' · 💪 고무팔 컨디션!';
+  }
+  if(qEarned>0) d += ` · 퀘스트 ${qEarned}개 달성!`;
+  showBanner(t, d, 1700, ()=>{
+    clearPopup();
+    advanceWeekday();
+  });
+}
+
+function advanceWeekday(){
+  // 요일 진행: 화(1)→수(2)→...→일(6)→월(0)
+  G.weekday = (G.weekday + 1) % 7;
+  if(G.weekday===1){ /* 화요일로 돌아옴 = 새 주 */ }
+  save();
+
+  if(G.weekday===0){
+    openGrowth();   // 월요일 = 성장 화면
+  }else{
+    renderHUD();
+    startDay();
+  }
+}
+
+/* =========================================================
+   성장(월요일) 화면
+   ========================================================= */
+function openGrowth(){
+  G.week += 1;            // 월요일 진입 = 다음 주차 준비
+  save();
+  D.shop = sampleN(ITEM_POOL, 4);   // 랜덤 4개 진열
+  $('shopMsg').textContent = '';
+  renderGrowth();
+  renderShop();
+  $('growth').classList.add('on');
+  renderHUD();
+}
+function renderGrowth(){
+  $('gExp').textContent = G.exp;
+  $('gVel').textContent = G.vel;
+  $('gCon').textContent = G.con;
+  $('gHp').textContent  = G.maxHp;
+  $('costVel').textContent = COST.vel;
+  $('costCon').textContent = COST.con;
+  $('costHp').textContent  = COST.hp;
+}
+
+/* ===== 월요일 랜덤 상점 ===== */
+function renderShop(){
+  $('shopGold').textContent = comma(G.gold);
+  const box = $('shopList');
+  box.innerHTML = '';
+  D.shop.forEach(it=>{
+    const can = G.gold >= it.price;
+    const card = document.createElement('div');
+    card.className = 'shopCard' + (it.reroll?' ticket':'') + (it.instant?' coupon':'');
+    card.innerHTML =
+      `<div class="siIco">${it.icon}</div>`
+      + `<div class="siInfo"><div class="siName">${it.name}</div><div class="siDesc">${it.desc}</div></div>`
+      + `<button class="siBuy${can?'':' cant'}" data-item="${it.key}">${it.price}G</button>`;
+    box.appendChild(card);
+  });
+  box.querySelectorAll('[data-item]').forEach(btn=>{
+    btn.addEventListener('click', ()=> buyItem(btn.getAttribute('data-item')));
+  });
+}
+function buyItem(key){
+  const it = ITEM_MAP[key];
+  const msg = $('shopMsg');
+  if(!it) return;
+  if(G.gold < it.price){ msg.textContent = 'GOLD가 부족합니다! 😢'; return; }
+  G.gold -= it.price;
+  SFX.reward();
+
+  if(it.reroll){
+    // 야구장 암표: 4개 리롤, 다음 주로 안 넘어감
+    D.shop = sampleN(ITEM_POOL, 4);
+    save();
+    renderShop(); renderHUD();
+    msg.textContent = '🎟️ 상점을 새로 진열했습니다!';
+    return;
+  }
+  if(it.instant){
+    // 비밀 특훈 쿠폰: 랜덤 영구 +1
+    const stat = pick(['vel','con','hp']);
+    if(stat==='vel') G.vel++; else if(stat==='con') G.con++; else G.maxHp++;
+    const nm = stat==='vel'?'구속':stat==='con'?'제구':'최대 체력';
+    save();
+    $('growth').classList.remove('on');
+    G.weekday = 1; renderHUD();
+    showBannerThenStart(`📈 비밀 특훈 완료!`, `${nm} 영구 +1`);
+    return;
+  }
+  // 일반 아이템: 다음 경기 발동 예약 → 화요일로 (startDay 배너가 발동 표시)
+  G.itemNext = key;
+  save();
+  $('growth').classList.remove('on');
+  G.weekday = 1; renderHUD();
+  startDay();
+}
+// 배너 띄운 뒤 경기 시작
+function showBannerThenStart(t, d){
+  showBanner(t, d, 1300, ()=> startDay());
+}
+function buy(stat){
+  const c = COST[stat];
+  const msg = $('growthMsg');
+  if(G.exp < c){ msg.textContent = 'EXP가 부족합니다! 😢'; return; }
+  G.exp -= c;
+  if(stat==='vel'){ G.vel++; msg.textContent='🔥 구속이 단련되었다! (+1)'; }
+  if(stat==='con'){ G.con++; msg.textContent='🎯 제구가 단련되었다! (+1)'; }
+  if(stat==='hp'){ G.maxHp++; msg.textContent='❤️ 최대 체력이 늘었다! (+1)'; }
+  save();
+  renderGrowth();
+  renderHUD();
+}
+
+function nextWeek(){
+  $('growth').classList.remove('on');
+  G.weekday = 1; // 화요일
+  save();
+  renderHUD();
+  startDay();
+}
+
+/* =========================================================
+   투수 생성 화면
+   ========================================================= */
+let pendingCreate = null;   // 굴린 결과 (시즌 시작 전 임시)
+let creating = false;       // 주사위 굴리는 중
+
+function openCreate(){
+  pendingCreate = null;
+  creating = false;
+  $('growth').classList.remove('on');
+  $('cVel').textContent = '--'; $('cCon').textContent = '--';
+  $('cBarVel').style.width = '0%'; $('cBarCon').style.width = '0%';
+  $('cTraitIco').textContent = '❔';
+  $('cTraitName').textContent = '특성 ???';
+  $('cTraitDesc').textContent = '주사위를 굴려 특성을 받으세요';
+  $('createMsg').textContent = '🎲 주사위를 굴려 투수를 만드세요! (구속·제구 각 40~60 랜덤)';
+  $('startSeasonBtn').disabled = true;
+  $('create').classList.add('on');
+}
+
+function renderCreatePreview(vel, con, traitKey){
+  $('cVel').textContent = vel;
+  $('cCon').textContent = con;
+  $('cBarVel').style.width = Math.min(100, vel) + '%';
+  $('cBarCon').style.width = Math.min(100, con) + '%';
+  const t = TRAITS[traitKey];
+  $('cTraitIco').textContent = t.icon;
+  $('cTraitName').textContent = '특성 · ' + t.name;
+  $('cTraitDesc').textContent = t.desc;
+}
+
+function rollCharacter(){
+  if(creating) return;
+  creating = true;
+  $('startSeasonBtn').disabled = true;
+  $('rollBtn').classList.add('rolling');
+  $('createMsg').textContent = '🎲 주사위를 굴리는 중...';
+
+  const roll40to60 = () => 40 + Math.floor(Math.random()*21);  // 40~60 독립 랜덤
+  // 룰렛 연출
+  let ticks = 0;
+  const spin = setInterval(()=>{
+    renderCreatePreview(roll40to60(), roll40to60(), pick(TRAIT_KEYS));
+    ticks++;
+  }, 70);
+
+  setTimeout(()=>{
+    clearInterval(spin);
+    // 확정: 구속/제구 각각 40~60 독립 랜덤 (총합 80~120), 체력 5 고정
+    const vel = roll40to60();
+    const con = roll40to60();
+    const trait = pick(TRAIT_KEYS);
+    pendingCreate = { vel, con, trait };
+    renderCreatePreview(vel, con, trait);
+    $('rollBtn').classList.remove('rolling');
+    $('rollBtn').textContent = '🎲 다시 굴리기';
+    $('startSeasonBtn').disabled = false;
+    $('createMsg').textContent = `완성! 구속 ${vel} · 제구 ${con} (합 ${vel+con}) · 특성 「${TRAITS[trait].name}」`;
+    creating = false;
+  }, 800);
+}
+
+function startSeason(){
+  if(!pendingCreate) return;
+  G = {
+    vel: pendingCreate.vel, con: pendingCreate.con, maxHp: 5,
+    trait: pendingCreate.trait,
+    exp: 0, gold: 0, weekday: 1, week: 1,
+    forcedBadNext: false, created: true,
+    totalOuts: 0, totalRuns: 0, itemNext: null, dayCount: 0, lastDayEff: false,
+  };
+  save();
+  $('create').classList.remove('on');
+  $('rollBtn').textContent = '🎲 주사위 굴리기';
+  renderHUD();
+  startDay();
+}
+
+/* =========================================================
+   초기화
+   ========================================================= */
+function hardReset(){
+  if(!confirm('정말 처음부터 다시 시작할까요? (저장 데이터 삭제)')) return;
+  localStorage.removeItem(SAVE_KEY);
+  G = { vel:55, con:55, maxHp:5, trait:null, exp:0, gold:0, weekday:1, week:1, forcedBadNext:false, created:false, totalOuts:0, totalRuns:0, itemNext:null, dayCount:0, lastDayEff:false };
+  $('growth').classList.remove('on');
+  renderHUD();
+  openCreate();   // 다시 투수 생성부터
+}
+
+/* =========================================================
+   이벤트 바인딩 & 시작
+   ========================================================= */
+$('btnFast').addEventListener('click', ()=> pitch('fast'));
+$('btnCurve').addEventListener('click', ()=> pitch('curve'));
+$('resetBtn').addEventListener('click', hardReset);
+$('nextWeekBtn').addEventListener('click', nextWeek);
+$('rollBtn').addEventListener('click', rollCharacter);
+$('startSeasonBtn').addEventListener('click', startSeason);
+$('hudTrait').addEventListener('click', showTraitInfo);
+document.querySelectorAll('[data-buy]').forEach(b=>{
+  b.addEventListener('click', ()=> buy(b.getAttribute('data-buy')));
+});
+
+// 게임 시작
+load();
+renderHUD();
+if(!G.created){
+  openCreate();                 // 최초 실행 → 투수 생성
+}else if(G.weekday===0){
+  openGrowth();                 // 월요일 이어하기
+}else{
+  startDay();
+}
+</script>
+</body>
+</html>
