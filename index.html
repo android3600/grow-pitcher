@@ -441,6 +441,10 @@ html,body{
   box-shadow:0 0 12px #2d7bff55, inset -3px -3px 0 rgba(0,0,0,.45), inset 3px 3px 0 #ffffff2a;
   color:#fff; text-shadow:2px 2px 0 #000; }
 .pitchBtns .prob{ color:#ffe9b0; }
+.pitchBtns .walk{ flex:0 0 26%; background:linear-gradient(#6b6f7a,#3a3e48);
+  box-shadow:0 0 8px #00000055, inset -3px -3px 0 rgba(0,0,0,.45), inset 3px 3px 0 #ffffff22;
+  color:#fff; text-shadow:2px 2px 0 #000; font-size:14px; }
+.pitchBtns .walk .prob{ color:#cfd6e2; }
 
 /* 슬롯 오버레이 골드 프레임 */
 .reels{ padding:10px 12px; background:linear-gradient(#2a1c08,#100a02);
@@ -629,10 +633,13 @@ html,body{
   color:#fff; text-shadow:2px 2px 0 #000; box-shadow:0 0 12px #ff8a3d55, inset -3px -3px 0 rgba(0,0,0,.4); }
 #startSeasonBtn{ font-size:16px; padding:13px; background:linear-gradient(#3d8bff,#103fb2);
   color:#fff; text-shadow:2px 2px 0 #000; box-shadow:0 0 12px #2d7bff55, inset -3px -3px 0 rgba(0,0,0,.4); }
-/* 특성 도감 모달 */
-#traitModal{ position:absolute; inset:0; z-index:15; display:none;
+/* 도감 모달 (특성/상점 공용) */
+#traitModal, #shopModal{ position:absolute; inset:0; z-index:15; display:none;
   align-items:center; justify-content:center; padding:16px; background:rgba(3,5,10,.88); }
-#traitModal.on{ display:flex; }
+#traitModal.on, #shopModal.on{ display:flex; }
+.shopHead #shopListBtn{ font-size:10px; padding:3px 8px; margin:0 6px; }
+.shopHead .shopGold{ margin-left:auto; }
+.tmItem .tmPrice{ flex:0 0 auto; margin-left:auto; align-self:center; font-size:12px; color:var(--gold); }
 .traitModalCard{ width:100%; max-width:410px; max-height:90%; display:flex; flex-direction:column;
   gap:8px; padding:14px; background:linear-gradient(#1a1426,#0d0a16);
   border:4px solid #6b4e16; border-radius:8px; box-shadow:0 0 22px #000c, inset 0 0 0 2px #ffd98a55; }
@@ -786,6 +793,10 @@ html,body{
         🌀 변화구
         <span class="prob" id="probCurve">아웃 --%</span>
       </button>
+      <button class="btn walk" id="btnWalk">
+        🖐️ 사사구
+        <span class="prob">체력 소모 X</span>
+      </button>
     </div>
   </div>
 
@@ -848,21 +859,9 @@ html,body{
       </div>
     </div>
 
-    <div class="trainCard box" data-train="hp">
-      <div class="ico">❤️</div>
-      <div class="info">
-        <div class="t">최대 체력 단련 <b style="color:var(--hp)">+1</b></div>
-        <div class="d">현재 최대 HP <span id="gHp">5</span></div>
-      </div>
-      <div style="text-align:right;">
-        <div class="cost">EXP <span id="costHp">120</span></div>
-        <button class="btn" data-buy="hp" style="margin-top:5px;font-size:11px;padding:6px 10px;">단련</button>
-      </div>
-    </div>
-
     <div id="growthMsg" class="tiny" style="text-align:center;min-height:14px;color:var(--accent)"></div>
 
-    <div class="shopHead">🛒 랜덤 상점 <span class="shopGold">보유 GOLD <b id="shopGold">0</b></span></div>
+    <div class="shopHead">🛒 랜덤 상점 <button class="btn" id="shopListBtn">📖 상점 목록</button> <span class="shopGold">보유 GOLD <b id="shopGold">0</b></span></div>
     <div id="shopList"></div>
     <div class="tiny" style="text-align:center;color:var(--dim);margin-top:2px;">4개 중 1개만 구매 가능 · 구매/건너뛰기 시 화요일로</div>
     <div id="shopMsg" class="tiny" style="text-align:center;min-height:14px;color:var(--accent)"></div>
@@ -906,6 +905,15 @@ html,body{
       <div class="tmHead">📖 투수 특성 목록</div>
       <div id="traitModalList"></div>
       <button class="btn" id="traitModalClose">닫기</button>
+    </div>
+  </div>
+
+  <!-- ===== 상점 도감 모달 ===== -->
+  <div id="shopModal">
+    <div class="traitModalCard">
+      <div class="tmHead">🛒 상점 아이템 목록</div>
+      <div id="shopModalList"></div>
+      <button class="btn" id="shopModalClose">닫기</button>
     </div>
   </div>
 
@@ -2210,6 +2218,7 @@ function startDay(){
   D.busy = true;
   $('btnFast').disabled = true;
   $('btnCurve').disabled = true;
+  $('btnWalk').disabled = true;
   renderAll();
   renderQuests();
 
@@ -2221,6 +2230,7 @@ function startDay(){
     D.busy = false;
     $('btnFast').disabled = false;
     $('btnCurve').disabled = false;
+    $('btnWalk').disabled = false;
   });
 }
 
@@ -2235,6 +2245,7 @@ function pitch(type){
   D.busy = true;
   $('btnFast').disabled = true;
   $('btnCurve').disabled = true;
+  $('btnWalk').disabled = true;
 
   // 1) 방전 판정 (체력 0에서 투구 → 패널티). 악마의 계약서면 방전 없음
   const discharged = !D.infHp && D.hp <= 0;
@@ -2354,6 +2365,35 @@ function finishOnBase(field){
   }, 750);
 }
 
+// 고의 사사구: 타자 1루 출루(필요한 주자만 강제 진루), 체력·아웃 없음
+function intentionalWalk(){
+  if(D.busy) return;
+  if(G.weekday===0) return;
+  D.busy = true;
+  $('btnFast').disabled = true; $('btnCurve').disabled = true; $('btnWalk').disabled = true;
+  // 강제 진루: 1루부터 채워질 때만 밀림, 만루면 1실점
+  let runs = 0;
+  if(D.bases[0]){
+    if(D.bases[1]){
+      if(D.bases[2]) runs = 1;   // 만루 → 3루 주자 득점
+      D.bases[2] = true;          // 2루→3루
+    }
+    D.bases[1] = true;            // 1루→2루
+  }
+  D.bases[0] = true;              // 타자→1루
+  D.runs += runs; G.totalRuns += runs;
+  D.consecK = 0; D.lastXBH = false;
+  if(runs>0) save();
+
+  const field = $('field'), big = $('popBig'), sub = $('popSub');
+  field.classList.remove('flash','shake','shakeBig'); void field.offsetWidth;
+  big.textContent = '고의 사사구'; big.style.color = '#cfd6e2';
+  sub.textContent = runs>0 ? '🖐️ 만루 밀어내기 +1실점!' : '🖐️ 타자를 거른다';
+  showPopup(); SFX.out(); burst('🖐️','walk'); field.classList.add('shake');
+  renderScoreboard(); updateQuests();
+  finishOnBase(field);
+}
+
 // 주자 진루 처리 → 득점 수 반환
 function advanceRunners(adv, runnerAdv){
   // runnerAdv: 기존 주자가 진루하는 베이스 수 (안타 시 타자보다 1 더 → 득점 강화)
@@ -2393,6 +2433,7 @@ function nextBatter(){
   D.busy = false;
   $('btnFast').disabled = false;
   $('btnCurve').disabled = false;
+  $('btnWalk').disabled = false;
   renderBatter();
   renderHP();
 }
@@ -2530,6 +2571,21 @@ function openTraitModal(){
   $('traitModal').classList.add('on');
 }
 
+// 상점 도감 모달 (전체 13종)
+function openShopModal(){
+  const box = $('shopModalList');
+  box.innerHTML = '';
+  ITEM_POOL.forEach(it=>{
+    const row = document.createElement('div');
+    row.className = 'tmItem';
+    row.innerHTML = `<div class="tmIco">${it.icon}</div>`
+      + `<div style="flex:1;min-width:0;"><div class="tmName">${it.name}</div><div class="tmDesc">${it.desc}</div></div>`
+      + `<div class="tmPrice">${it.price}G</div>`;
+    box.appendChild(row);
+  });
+  $('shopModal').classList.add('on');
+}
+
 // 중앙 배너 표시 (제목/설명/표시시간/콜백)
 function showBanner(title, desc, dur, cb){
   const banner=$('banner');
@@ -2547,6 +2603,7 @@ function endDay(reason){
   D.busy = true;
   $('btnFast').disabled = true;
   $('btnCurve').disabled = true;
+  $('btnWalk').disabled = true;
 
   // 수비형 퀘스트 정산
   const qEarned = finalizeQuests();
@@ -2601,10 +2658,8 @@ function renderGrowth(){
   $('gExp').textContent = G.exp;
   $('gVel').textContent = G.vel;
   $('gCon').textContent = G.con;
-  $('gHp').textContent  = G.maxHp;
   $('costVel').textContent = COST.vel;
   $('costCon').textContent = COST.con;
-  $('costHp').textContent  = COST.hp;
 }
 
 /* ===== 월요일 랜덤 상점 ===== */
@@ -2781,6 +2836,7 @@ function hardReset(){
    ========================================================= */
 $('btnFast').addEventListener('click', ()=> pitch('fast'));
 $('btnCurve').addEventListener('click', ()=> pitch('curve'));
+$('btnWalk').addEventListener('click', intentionalWalk);
 $('resetBtn').addEventListener('click', hardReset);
 $('nextWeekBtn').addEventListener('click', nextWeek);
 $('rollBtn').addEventListener('click', rollCharacter);
@@ -2789,6 +2845,9 @@ $('hudTrait').addEventListener('click', showTraitInfo);
 $('traitListBtn').addEventListener('click', openTraitModal);
 $('traitModalClose').addEventListener('click', ()=> $('traitModal').classList.remove('on'));
 $('traitModal').addEventListener('click', (e)=>{ if(e.target.id==='traitModal') $('traitModal').classList.remove('on'); });
+$('shopListBtn').addEventListener('click', openShopModal);
+$('shopModalClose').addEventListener('click', ()=> $('shopModal').classList.remove('on'));
+$('shopModal').addEventListener('click', (e)=>{ if(e.target.id==='shopModal') $('shopModal').classList.remove('on'); });
 document.querySelectorAll('[data-buy]').forEach(b=>{
   b.addEventListener('click', ()=> buy(b.getAttribute('data-buy')));
 });
