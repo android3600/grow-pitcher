@@ -361,7 +361,8 @@ html,body{
 .sideTag.red{ background:#d12d2d; }
 .sideTag.blue{ background:#2d6bd1; }
 .tierTag{ color:#000; }
-#batterDesc{ margin:3px 0; }
+.batterDescInline{ margin-left:auto; font-size:10px; color:#ffd9a8; font-style:italic;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:46%; }
 
 /* 수치 게이지 바 */
 .statBars{ margin-top:6px; display:flex; flex-direction:column; gap:4px; }
@@ -578,6 +579,7 @@ html,body{
   0%,100%{ box-shadow:inset 0 0 0 2px #ff5a5a, 0 0 14px #ff0000aa, inset -3px -3px 0 rgba(0,0,0,.45); }
   50%{ box-shadow:inset 0 0 0 2px #ffd0d0, 0 0 24px #ff0000, inset -3px -3px 0 rgba(0,0,0,.45); }
 }
+.yearTag{ font-size:10px; color:#9fb0c8; }
 .awakeTag{ color:#ff3b3b; font-weight:bold; text-shadow:0 0 6px #ff0000, 1px 1px 0 #000;
   animation:awakeBlink .5s steps(1) infinite; }
 @keyframes awakeBlink{ 0%,100%{ opacity:1; } 50%{ opacity:.45; } }
@@ -674,8 +676,8 @@ html,body{
           <span class="sideTag red">타자</span>
           <span id="batterName">오스틴</span>
           <span class="tierTag" id="tierTag">S</span>
+          <span class="batterDescInline" id="batterDesc">「공포의 홈런 타자」</span>
         </div>
-        <div class="tiny" id="batterDesc">「공포의 홈런 타자」</div>
         <div class="statBars">
           <div class="sBar"><span class="sName">컨택</span><span class="sTrack"><i class="sFill f-con" id="barContact"></i></span><span class="sVal" id="valContact">85</span><span class="gradeLetter" id="gContact">A</span></div>
           <div class="sBar"><span class="sName">파워</span><span class="sTrack"><i class="sFill f-pow" id="barPower"></i></span><span class="sVal" id="valPower">95</span><span class="gradeLetter" id="gPower">S</span></div>
@@ -1167,6 +1169,314 @@ const ALL_BATTERS = [
   { year:2025, name:"송지후(키움)", contact:48, power:50, eye:55, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"유망주" },
   { year:2025, name:"원성준(키움)", contact:45, power:55, eye:50, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"내야 유망주" },
   { year:2025, name:"박수종(키움)", contact:38, power:45, eye:45, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"외야 백업" },
+  // ===== 2024 시즌 =====
+  // [LG]
+  { year:2024, name:"이주헌(LG)", contact:54, power:46, eye:48, contactGrade:"C", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"김대원(LG)", contact:50, power:42, eye:48, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"홍창기(LG)", contact:84, power:53, eye:84, contactGrade:"A", powerGrade:"C", eyeGrade:"A", desc:"교타자" },
+  { year:2024, name:"최명경(LG)", contact:50, power:42, eye:48, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"오스틴(LG)", contact:80, power:98, eye:68, contactGrade:"A", powerGrade:"S", eyeGrade:"B", desc:"공포의 중심타자" },
+  { year:2024, name:"문성주(LG)", contact:79, power:51, eye:79, contactGrade:"A", powerGrade:"D", eyeGrade:"A", desc:"선구안 좋은 타자" },
+  { year:2024, name:"문보경(LG)", contact:75, power:86, eye:70, contactGrade:"B", powerGrade:"A", eyeGrade:"B", desc:"거포" },
+  { year:2024, name:"신민재(LG)", contact:74, power:50, eye:81, contactGrade:"B", powerGrade:"D", eyeGrade:"A", desc:"선구안 좋은 타자" },
+  { year:2024, name:"김현수(LG)", contact:74, power:66, eye:67, contactGrade:"B", powerGrade:"B", eyeGrade:"B", desc:"평범한 타자" },
+  { year:2024, name:"박동원(LG)", contact:68, power:82, eye:72, contactGrade:"B", powerGrade:"A", eyeGrade:"B", desc:"거포" },
+  { year:2024, name:"최원영(LG)", contact:50, power:42, eye:48, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"김성진(LG)", contact:51, power:45, eye:49, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"박해민(LG)", contact:66, power:59, eye:71, contactGrade:"B", powerGrade:"C", eyeGrade:"B", desc:"평범한 타자" },
+  { year:2024, name:"구본혁(LG)", contact:64, power:52, eye:72, contactGrade:"B", powerGrade:"C", eyeGrade:"B", desc:"평범한 타자" },
+  { year:2024, name:"오지환(LG)", contact:64, power:74, eye:79, contactGrade:"B", powerGrade:"B", eyeGrade:"A", desc:"평범한 타자" },
+  { year:2024, name:"김범석(LG)", contact:55, power:56, eye:58, contactGrade:"C", powerGrade:"C", eyeGrade:"C", desc:"평범한 타자" },
+  { year:2024, name:"이영빈(LG)", contact:51, power:47, eye:50, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"김현종(LG)", contact:50, power:42, eye:48, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"안익훈(LG)", contact:50, power:42, eye:48, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"김주성(LG)", contact:50, power:42, eye:48, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"김정율(LG)", contact:50, power:42, eye:48, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"함창건(LG)", contact:50, power:42, eye:48, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"허도환(LG)", contact:48, power:42, eye:55, contactGrade:"D", powerGrade:"D", eyeGrade:"C", desc:"백업/유망주" },
+  { year:2024, name:"최승민(LG)", contact:50, power:42, eye:48, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"송찬의(LG)", contact:50, power:42, eye:48, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"김대현(LG)", contact:45, power:40, eye:45, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"김성우(LG)", contact:50, power:42, eye:48, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"김수인(LG)", contact:50, power:42, eye:48, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"김영준(LG)", contact:45, power:40, eye:45, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"김유영(LG)", contact:45, power:40, eye:45, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  // [KT]
+  { year:2024, name:"박경수(KT)", contact:50, power:42, eye:48, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"김병준(KT)", contact:53, power:42, eye:50, contactGrade:"C", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"김민혁(KT)", contact:88, power:52, eye:65, contactGrade:"S", powerGrade:"C", eyeGrade:"B", desc:"정교한 타격 기계" },
+  { year:2024, name:"로하스(KT)", contact:82, power:95, eye:77, contactGrade:"A", powerGrade:"S", eyeGrade:"A", desc:"공포의 중심타자" },
+  { year:2024, name:"강현우(KT)", contact:54, power:47, eye:55, contactGrade:"C", powerGrade:"D", eyeGrade:"C", desc:"백업/유망주" },
+  { year:2024, name:"조대현(KT)", contact:54, power:43, eye:50, contactGrade:"C", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"천성호(KT)", contact:74, power:53, eye:63, contactGrade:"B", powerGrade:"C", eyeGrade:"C", desc:"평범한 타자" },
+  { year:2024, name:"오윤석(KT)", contact:73, power:84, eye:72, contactGrade:"B", powerGrade:"A", eyeGrade:"B", desc:"거포" },
+  { year:2024, name:"강백호(KT)", contact:72, power:83, eye:70, contactGrade:"B", powerGrade:"A", eyeGrade:"B", desc:"거포" },
+  { year:2024, name:"신본기(KT)", contact:57, power:48, eye:58, contactGrade:"C", powerGrade:"D", eyeGrade:"C", desc:"평범한 타자" },
+  { year:2024, name:"김상수(KT)", contact:69, power:61, eye:71, contactGrade:"B", powerGrade:"C", eyeGrade:"B", desc:"평범한 타자" },
+  { year:2024, name:"배정대(KT)", contact:69, power:65, eye:73, contactGrade:"B", powerGrade:"B", eyeGrade:"B", desc:"평범한 타자" },
+  { year:2024, name:"장성우(KT)", contact:67, power:80, eye:75, contactGrade:"B", powerGrade:"A", eyeGrade:"B", desc:"거포" },
+  { year:2024, name:"심우준(KT)", contact:64, power:52, eye:67, contactGrade:"B", powerGrade:"C", eyeGrade:"B", desc:"평범한 타자" },
+  { year:2024, name:"황재균(KT)", contact:65, power:66, eye:62, contactGrade:"B", powerGrade:"B", eyeGrade:"C", desc:"평범한 타자" },
+  { year:2024, name:"문상철(KT)", contact:64, power:80, eye:78, contactGrade:"B", powerGrade:"A", eyeGrade:"A", desc:"거포" },
+  { year:2024, name:"안치영(KT)", contact:52, power:41, eye:49, contactGrade:"C", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"조용호(KT)", contact:57, power:43, eye:58, contactGrade:"C", powerGrade:"D", eyeGrade:"C", desc:"하위 타선" },
+  { year:2024, name:"오재일(KT)", contact:61, power:80, eye:72, contactGrade:"C", powerGrade:"A", eyeGrade:"B", desc:"거포" },
+  { year:2024, name:"김준태(KT)", contact:50, power:42, eye:48, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"정준영(KT)", contact:51, power:42, eye:55, contactGrade:"D", powerGrade:"D", eyeGrade:"C", desc:"백업/유망주" },
+  { year:2024, name:"권동진(KT)", contact:50, power:42, eye:50, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"홍현빈(KT)", contact:50, power:42, eye:48, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"박민석(KT)", contact:50, power:42, eye:48, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"송민섭(KT)", contact:50, power:42, eye:52, contactGrade:"D", powerGrade:"D", eyeGrade:"C", desc:"백업/유망주" },
+  { year:2024, name:"안현민(KT)", contact:50, power:45, eye:50, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"윤준혁(KT)", contact:50, power:42, eye:48, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"이호연(KT)", contact:49, power:42, eye:48, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"김건형(KT)", contact:49, power:42, eye:49, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"장준원(KT)", contact:50, power:42, eye:48, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  // [삼성]
+  { year:2024, name:"구자욱(삼성)", contact:86, power:99, eye:71, contactGrade:"A", powerGrade:"S", eyeGrade:"B", desc:"공포의 중심타자" },
+  { year:2024, name:"카디네스(삼성)", contact:57, power:54, eye:49, contactGrade:"C", powerGrade:"C", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"김지찬(삼성)", contact:79, power:52, eye:76, contactGrade:"A", powerGrade:"C", eyeGrade:"A", desc:"선구안 좋은 타자" },
+  { year:2024, name:"강민호(삼성)", contact:76, power:83, eye:67, contactGrade:"A", powerGrade:"A", eyeGrade:"B", desc:"거포" },
+  { year:2024, name:"김헌곤(삼성)", contact:76, power:68, eye:65, contactGrade:"A", powerGrade:"B", eyeGrade:"B", desc:"평범한 타자" },
+  { year:2024, name:"맥키넌(삼성)", contact:74, power:58, eye:75, contactGrade:"B", powerGrade:"C", eyeGrade:"B", desc:"평범한 타자" },
+  { year:2024, name:"윤정빈(삼성)", contact:72, power:77, eye:77, contactGrade:"B", powerGrade:"A", eyeGrade:"A", desc:"중장거리 타자" },
+  { year:2024, name:"디아즈(삼성)", contact:61, power:72, eye:56, contactGrade:"C", powerGrade:"B", eyeGrade:"C", desc:"평범한 타자" },
+  { year:2024, name:"이재현(삼성)", contact:65, power:75, eye:82, contactGrade:"B", powerGrade:"B", eyeGrade:"A", desc:"평범한 타자" },
+  { year:2024, name:"류지혁(삼성)", contact:64, power:52, eye:74, contactGrade:"B", powerGrade:"C", eyeGrade:"B", desc:"평범한 타자" },
+  { year:2024, name:"김영웅(삼성)", contact:63, power:93, eye:69, contactGrade:"C", powerGrade:"S", eyeGrade:"B", desc:"거포" },
+  { year:2024, name:"김민수(삼성)", contact:50, power:42, eye:48, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"이병헌(삼성)", contact:58, power:45, eye:65, contactGrade:"C", powerGrade:"D", eyeGrade:"B", desc:"하위 타선" },
+  { year:2024, name:"김성윤(삼성)", contact:53, power:44, eye:55, contactGrade:"C", powerGrade:"D", eyeGrade:"C", desc:"하위 타선" },
+  { year:2024, name:"이성규(삼성)", contact:60, power:99, eye:79, contactGrade:"C", powerGrade:"S", eyeGrade:"A", desc:"거포" },
+  { year:2024, name:"김재상(삼성)", contact:53, power:49, eye:51, contactGrade:"C", powerGrade:"D", eyeGrade:"D", desc:"평범한 타자" },
+  { year:2024, name:"박병호(삼성)", contact:58, power:90, eye:81, contactGrade:"C", powerGrade:"S", eyeGrade:"A", desc:"거포" },
+  { year:2024, name:"전병우(삼성)", contact:51, power:50, eye:54, contactGrade:"D", powerGrade:"D", eyeGrade:"C", desc:"백업/유망주" },
+  { year:2024, name:"김현준(삼성)", contact:53, power:47, eye:57, contactGrade:"C", powerGrade:"D", eyeGrade:"C", desc:"평범한 타자" },
+  { year:2024, name:"안주형(삼성)", contact:51, power:41, eye:53, contactGrade:"D", powerGrade:"D", eyeGrade:"C", desc:"하위 타선" },
+  { year:2024, name:"김재성(삼성)", contact:50, power:42, eye:50, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"김태훈(삼성)", contact:50, power:42, eye:49, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"이창용(삼성)", contact:50, power:42, eye:48, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"김재혁(삼성)", contact:49, power:44, eye:49, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"양도근(삼성)", contact:50, power:43, eye:51, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"김동엽(삼성)", contact:48, power:42, eye:50, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"김동진(삼성)", contact:50, power:42, eye:48, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"강한울(삼성)", contact:50, power:42, eye:48, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"공민규(삼성)", contact:50, power:42, eye:48, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"김호진(삼성)", contact:50, power:42, eye:48, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  // [KIA]
+  { year:2024, name:"윤도현(KIA)", contact:68, power:56, eye:47, contactGrade:"B", powerGrade:"C", eyeGrade:"D", desc:"평범한 타자" },
+  { year:2024, name:"김두현(KIA)", contact:50, power:42, eye:48, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"김도영(KIA)", contact:87, power:99, eye:71, contactGrade:"A", powerGrade:"S", eyeGrade:"B", desc:"공포의 중심타자" },
+  { year:2024, name:"김선빈(KIA)", contact:82, power:64, eye:63, contactGrade:"A", powerGrade:"B", eyeGrade:"C", desc:"교타자" },
+  { year:2024, name:"서건창(KIA)", contact:72, power:55, eye:75, contactGrade:"B", powerGrade:"C", eyeGrade:"B", desc:"선구안 좋은 타자" },
+  { year:2024, name:"소크라테스(KIA)", contact:78, power:86, eye:62, contactGrade:"A", powerGrade:"A", eyeGrade:"C", desc:"공포의 중심타자" },
+  { year:2024, name:"박정우(KIA)", contact:56, power:45, eye:50, contactGrade:"C", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"박찬호(KIA)", contact:77, power:55, eye:65, contactGrade:"A", powerGrade:"C", eyeGrade:"B", desc:"평범한 타자" },
+  { year:2024, name:"한준수(KIA)", contact:77, power:72, eye:60, contactGrade:"A", powerGrade:"B", eyeGrade:"C", desc:"중장거리 타자" },
+  { year:2024, name:"변우혁(KIA)", contact:76, power:76, eye:68, contactGrade:"A", powerGrade:"A", eyeGrade:"B", desc:"중장거리 타자" },
+  { year:2024, name:"홍종표(KIA)", contact:59, power:48, eye:52, contactGrade:"C", powerGrade:"D", eyeGrade:"C", desc:"평범한 타자" },
+  { year:2024, name:"최원준(KIA)", contact:73, power:67, eye:73, contactGrade:"B", powerGrade:"B", eyeGrade:"B", desc:"평범한 타자" },
+  { year:2024, name:"나성범(KIA)", contact:73, power:90, eye:68, contactGrade:"B", powerGrade:"S", eyeGrade:"B", desc:"거포" },
+  { year:2024, name:"이우성(KIA)", contact:72, power:63, eye:71, contactGrade:"B", powerGrade:"C", eyeGrade:"B", desc:"평범한 타자" },
+  { year:2024, name:"오선우(KIA)", contact:50, power:42, eye:48, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"황대인(KIA)", contact:52, power:44, eye:48, contactGrade:"C", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"최형우(KIA)", contact:70, power:90, eye:73, contactGrade:"B", powerGrade:"S", eyeGrade:"B", desc:"거포" },
+  { year:2024, name:"박민(KIA)", contact:53, power:46, eye:49, contactGrade:"C", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"한승택(KIA)", contact:50, power:42, eye:48, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"김태군(KIA)", contact:66, power:65, eye:67, contactGrade:"B", powerGrade:"B", eyeGrade:"B", desc:"평범한 타자" },
+  { year:2024, name:"이창진(KIA)", contact:63, power:50, eye:84, contactGrade:"C", powerGrade:"D", eyeGrade:"A", desc:"선구안 좋은 타자" },
+  { year:2024, name:"고종욱(KIA)", contact:50, power:42, eye:48, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"김규성(KIA)", contact:50, power:42, eye:48, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"예진원(KIA)", contact:50, power:42, eye:48, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"최정용(KIA)", contact:50, power:42, eye:48, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"김호령(KIA)", contact:50, power:42, eye:48, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"곽도규(KIA)", contact:45, power:40, eye:45, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"김민주(KIA)", contact:45, power:40, eye:45, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"김사윤(KIA)", contact:45, power:40, eye:45, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"김승현(KIA)", contact:45, power:40, eye:45, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  // [두산]
+  { year:2024, name:"류현준(두산)", contact:54, power:46, eye:48, contactGrade:"C", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"여동건(두산)", contact:54, power:42, eye:49, contactGrade:"C", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"전다민(두산)", contact:50, power:42, eye:48, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"제러드(두산)", contact:80, power:95, eye:76, contactGrade:"A", powerGrade:"S", eyeGrade:"A", desc:"공포의 중심타자" },
+  { year:2024, name:"양의지(두산)", contact:78, power:76, eye:68, contactGrade:"A", powerGrade:"A", eyeGrade:"B", desc:"중장거리 타자" },
+  { year:2024, name:"허경민(두산)", contact:77, power:64, eye:71, contactGrade:"A", powerGrade:"B", eyeGrade:"B", desc:"평범한 타자" },
+  { year:2024, name:"라모스(두산)", contact:76, power:79, eye:64, contactGrade:"A", powerGrade:"A", eyeGrade:"B", desc:"중장거리 타자" },
+  { year:2024, name:"김재호(두산)", contact:70, power:49, eye:72, contactGrade:"B", powerGrade:"D", eyeGrade:"B", desc:"평범한 타자" },
+  { year:2024, name:"홍성호(두산)", contact:50, power:42, eye:48, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"정수빈(두산)", contact:71, power:54, eye:77, contactGrade:"B", powerGrade:"C", eyeGrade:"A", desc:"선구안 좋은 타자" },
+  { year:2024, name:"김재환(두산)", contact:71, power:96, eye:75, contactGrade:"B", powerGrade:"S", eyeGrade:"B", desc:"거포" },
+  { year:2024, name:"강승호(두산)", contact:70, power:84, eye:62, contactGrade:"B", powerGrade:"A", eyeGrade:"C", desc:"거포" },
+  { year:2024, name:"김기연(두산)", contact:70, power:60, eye:66, contactGrade:"B", powerGrade:"C", eyeGrade:"B", desc:"평범한 타자" },
+  { year:2024, name:"이유찬(두산)", contact:69, power:57, eye:67, contactGrade:"B", powerGrade:"C", eyeGrade:"B", desc:"평범한 타자" },
+  { year:2024, name:"조수행(두산)", contact:66, power:42, eye:69, contactGrade:"B", powerGrade:"D", eyeGrade:"B", desc:"평범한 타자" },
+  { year:2024, name:"윤준호(두산)", contact:50, power:42, eye:48, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"장규빈(두산)", contact:50, power:42, eye:48, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"전민재(두산)", contact:62, power:48, eye:64, contactGrade:"C", powerGrade:"D", eyeGrade:"B", desc:"평범한 타자" },
+  { year:2024, name:"양석환(두산)", contact:62, power:96, eye:70, contactGrade:"C", powerGrade:"S", eyeGrade:"B", desc:"거포" },
+  { year:2024, name:"박준영(두산)", contact:53, power:62, eye:62, contactGrade:"C", powerGrade:"C", eyeGrade:"C", desc:"평범한 타자" },
+  { year:2024, name:"서예일(두산)", contact:50, power:42, eye:50, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"김민혁(두산)", contact:50, power:42, eye:48, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"박계범(두산)", contact:50, power:42, eye:48, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"안승한(두산)", contact:50, power:42, eye:48, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"장승현(두산)", contact:50, power:43, eye:50, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"김인태(두산)", contact:50, power:42, eye:48, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"김대한(두산)", contact:49, power:42, eye:50, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"양찬열(두산)", contact:50, power:42, eye:48, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"김태근(두산)", contact:50, power:42, eye:48, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"권휘(두산)", contact:50, power:42, eye:48, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  // [한화]
+  { year:2024, name:"황영묵(한화)", contact:75, power:53, eye:67, contactGrade:"B", powerGrade:"C", eyeGrade:"B", desc:"평범한 타자" },
+  { year:2024, name:"안치홍(한화)", contact:75, power:67, eye:70, contactGrade:"B", powerGrade:"B", eyeGrade:"B", desc:"평범한 타자" },
+  { year:2024, name:"하주석(한화)", contact:63, power:53, eye:58, contactGrade:"C", powerGrade:"C", eyeGrade:"C", desc:"평범한 타자" },
+  { year:2024, name:"김태연(한화)", contact:73, power:71, eye:70, contactGrade:"B", powerGrade:"B", eyeGrade:"B", desc:"중장거리 타자" },
+  { year:2024, name:"박상언(한화)", contact:53, power:44, eye:54, contactGrade:"C", powerGrade:"D", eyeGrade:"C", desc:"백업/유망주" },
+  { year:2024, name:"최인호(한화)", contact:67, power:58, eye:68, contactGrade:"B", powerGrade:"C", eyeGrade:"B", desc:"평범한 타자" },
+  { year:2024, name:"문현빈(한화)", contact:69, power:69, eye:67, contactGrade:"B", powerGrade:"B", eyeGrade:"B", desc:"평범한 타자" },
+  { year:2024, name:"이도윤(한화)", contact:69, power:49, eye:64, contactGrade:"B", powerGrade:"D", eyeGrade:"B", desc:"평범한 타자" },
+  { year:2024, name:"페라자(한화)", contact:69, power:88, eye:76, contactGrade:"B", powerGrade:"S", eyeGrade:"A", desc:"거포" },
+  { year:2024, name:"노시환(한화)", contact:68, power:80, eye:74, contactGrade:"B", powerGrade:"A", eyeGrade:"B", desc:"거포" },
+  { year:2024, name:"권광민(한화)", contact:54, power:54, eye:51, contactGrade:"C", powerGrade:"C", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"채은성(한화)", contact:68, power:83, eye:73, contactGrade:"B", powerGrade:"A", eyeGrade:"B", desc:"거포" },
+  { year:2024, name:"장진혁(한화)", contact:66, power:72, eye:70, contactGrade:"B", powerGrade:"B", eyeGrade:"B", desc:"평범한 타자" },
+  { year:2024, name:"최재훈(한화)", contact:64, power:55, eye:85, contactGrade:"B", powerGrade:"C", eyeGrade:"A", desc:"출루의 달인" },
+  { year:2024, name:"이재원(한화)", contact:54, power:44, eye:53, contactGrade:"C", powerGrade:"D", eyeGrade:"C", desc:"하위 타선" },
+  { year:2024, name:"김인환(한화)", contact:54, power:44, eye:58, contactGrade:"C", powerGrade:"D", eyeGrade:"C", desc:"하위 타선" },
+  { year:2024, name:"이원석(한화)", contact:53, power:44, eye:60, contactGrade:"C", powerGrade:"D", eyeGrade:"C", desc:"하위 타선" },
+  { year:2024, name:"김강민(한화)", contact:52, power:43, eye:57, contactGrade:"C", powerGrade:"D", eyeGrade:"C", desc:"하위 타선" },
+  { year:2024, name:"유로결(한화)", contact:50, power:42, eye:48, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"이진영(한화)", contact:50, power:48, eye:57, contactGrade:"D", powerGrade:"D", eyeGrade:"C", desc:"평범한 타자" },
+  { year:2024, name:"정은원(한화)", contact:49, power:45, eye:55, contactGrade:"D", powerGrade:"D", eyeGrade:"C", desc:"백업/유망주" },
+  { year:2024, name:"임종찬(한화)", contact:49, power:45, eye:52, contactGrade:"D", powerGrade:"D", eyeGrade:"C", desc:"백업/유망주" },
+  { year:2024, name:"이상혁(한화)", contact:50, power:42, eye:48, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"김서현(한화)", contact:45, power:40, eye:45, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"박상원(한화)", contact:45, power:40, eye:45, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"이명기(한화)", contact:50, power:42, eye:48, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"장규현(한화)", contact:50, power:42, eye:48, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"장민재(한화)", contact:45, power:40, eye:45, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"주현상(한화)", contact:45, power:40, eye:45, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"한경빈(한화)", contact:50, power:42, eye:48, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  // [NC]
+  { year:2024, name:"박영빈(NC)", contact:50, power:42, eye:48, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"박건우(NC)", contact:86, power:85, eye:68, contactGrade:"A", powerGrade:"A", eyeGrade:"B", desc:"공포의 중심타자" },
+  { year:2024, name:"박민우(NC)", contact:82, power:64, eye:72, contactGrade:"A", powerGrade:"B", eyeGrade:"B", desc:"교타자" },
+  { year:2024, name:"김한별(NC)", contact:54, power:42, eye:52, contactGrade:"C", powerGrade:"D", eyeGrade:"C", desc:"백업/유망주" },
+  { year:2024, name:"데이비슨(NC)", contact:76, power:99, eye:67, contactGrade:"A", powerGrade:"S", eyeGrade:"B", desc:"거포" },
+  { year:2024, name:"권희동(NC)", contact:75, power:73, eye:86, contactGrade:"B", powerGrade:"B", eyeGrade:"A", desc:"중장거리 타자" },
+  { year:2024, name:"안중열(NC)", contact:52, power:46, eye:50, contactGrade:"C", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"손아섭(NC)", contact:71, power:63, eye:55, contactGrade:"B", powerGrade:"C", eyeGrade:"C", desc:"평범한 타자" },
+  { year:2024, name:"서호철(NC)", contact:71, power:62, eye:65, contactGrade:"B", powerGrade:"C", eyeGrade:"B", desc:"평범한 타자" },
+  { year:2024, name:"천재환(NC)", contact:71, power:65, eye:63, contactGrade:"B", powerGrade:"B", eyeGrade:"C", desc:"평범한 타자" },
+  { year:2024, name:"최정원(NC)", contact:63, power:47, eye:67, contactGrade:"C", powerGrade:"D", eyeGrade:"B", desc:"평범한 타자" },
+  { year:2024, name:"박세혁(NC)", contact:59, power:49, eye:61, contactGrade:"C", powerGrade:"D", eyeGrade:"C", desc:"평범한 타자" },
+  { year:2024, name:"김휘집(NC)", contact:64, power:73, eye:73, contactGrade:"B", powerGrade:"B", eyeGrade:"B", desc:"평범한 타자" },
+  { year:2024, name:"김주원(NC)", contact:63, power:67, eye:87, contactGrade:"C", powerGrade:"B", eyeGrade:"A", desc:"출루의 달인" },
+  { year:2024, name:"한석현(NC)", contact:55, power:48, eye:51, contactGrade:"C", powerGrade:"D", eyeGrade:"D", desc:"평범한 타자" },
+  { year:2024, name:"박시원(NC)", contact:53, power:49, eye:57, contactGrade:"C", powerGrade:"D", eyeGrade:"C", desc:"평범한 타자" },
+  { year:2024, name:"김수윤(NC)", contact:50, power:42, eye:48, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"한재환(NC)", contact:50, power:42, eye:48, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"도태훈(NC)", contact:52, power:42, eye:73, contactGrade:"C", powerGrade:"D", eyeGrade:"B", desc:"하위 타선" },
+  { year:2024, name:"김성욱(NC)", contact:51, power:79, eye:75, contactGrade:"D", powerGrade:"A", eyeGrade:"B", desc:"평범한 타자" },
+  { year:2024, name:"송승환(NC)", contact:50, power:42, eye:48, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"오영수(NC)", contact:50, power:42, eye:48, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"김형준(NC)", contact:49, power:80, eye:76, contactGrade:"D", powerGrade:"A", eyeGrade:"A", desc:"거포" },
+  { year:2024, name:"박한결(NC)", contact:49, power:54, eye:52, contactGrade:"D", powerGrade:"C", eyeGrade:"C", desc:"백업/유망주" },
+  { year:2024, name:"김범준(NC)", contact:50, power:42, eye:48, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"김세훈(NC)", contact:50, power:42, eye:48, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"김영규(NC)", contact:45, power:40, eye:45, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"김재열(NC)", contact:45, power:40, eye:45, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"류진욱(NC)", contact:45, power:40, eye:45, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"송명기(NC)", contact:45, power:40, eye:45, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  // [SSG]
+  { year:2024, name:"에레디아(SSG)", contact:90, power:80, eye:59, contactGrade:"S", powerGrade:"A", eyeGrade:"C", desc:"거포" },
+  { year:2024, name:"정준재(SSG)", contact:77, power:60, eye:67, contactGrade:"A", powerGrade:"C", eyeGrade:"B", desc:"평범한 타자" },
+  { year:2024, name:"박성한(SSG)", contact:75, power:62, eye:73, contactGrade:"B", powerGrade:"C", eyeGrade:"B", desc:"평범한 타자" },
+  { year:2024, name:"최정(SSG)", contact:73, power:99, eye:78, contactGrade:"B", powerGrade:"S", eyeGrade:"A", desc:"거포" },
+  { year:2024, name:"추신수(SSG)", contact:70, power:66, eye:77, contactGrade:"B", powerGrade:"B", eyeGrade:"A", desc:"평범한 타자" },
+  { year:2024, name:"이지영(SSG)", contact:70, power:52, eye:59, contactGrade:"B", powerGrade:"C", eyeGrade:"C", desc:"평범한 타자" },
+  { year:2024, name:"박지환(SSG)", contact:69, power:62, eye:59, contactGrade:"B", powerGrade:"C", eyeGrade:"C", desc:"평범한 타자" },
+  { year:2024, name:"최지훈(SSG)", contact:69, power:71, eye:69, contactGrade:"B", powerGrade:"B", eyeGrade:"B", desc:"평범한 타자" },
+  { year:2024, name:"오태곤(SSG)", contact:66, power:73, eye:69, contactGrade:"B", powerGrade:"B", eyeGrade:"B", desc:"평범한 타자" },
+  { year:2024, name:"고명준(SSG)", contact:62, power:69, eye:64, contactGrade:"C", powerGrade:"B", eyeGrade:"B", desc:"평범한 타자" },
+  { year:2024, name:"하재훈(SSG)", contact:62, power:77, eye:60, contactGrade:"C", powerGrade:"A", eyeGrade:"C", desc:"평범한 타자" },
+  { year:2024, name:"조형우(SSG)", contact:51, power:41, eye:53, contactGrade:"D", powerGrade:"D", eyeGrade:"C", desc:"백업/유망주" },
+  { year:2024, name:"정현승(SSG)", contact:51, power:43, eye:49, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"최준우(SSG)", contact:51, power:43, eye:52, contactGrade:"D", powerGrade:"D", eyeGrade:"C", desc:"백업/유망주" },
+  { year:2024, name:"한유섬(SSG)", contact:59, power:90, eye:73, contactGrade:"C", powerGrade:"S", eyeGrade:"B", desc:"거포" },
+  { year:2024, name:"김성현(SSG)", contact:54, power:46, eye:67, contactGrade:"C", powerGrade:"D", eyeGrade:"B", desc:"평범한 타자" },
+  { year:2024, name:"신범수(SSG)", contact:50, power:44, eye:49, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"김민식(SSG)", contact:51, power:48, eye:64, contactGrade:"D", powerGrade:"D", eyeGrade:"B", desc:"평범한 타자" },
+  { year:2024, name:"강진성(SSG)", contact:50, power:42, eye:48, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"안상현(SSG)", contact:50, power:42, eye:49, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"최경모(SSG)", contact:50, power:42, eye:48, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"최상민(SSG)", contact:50, power:42, eye:48, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"전의산(SSG)", contact:50, power:42, eye:48, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"김찬형(SSG)", contact:50, power:42, eye:48, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"김창평(SSG)", contact:50, power:42, eye:48, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"류효승(SSG)", contact:50, power:42, eye:48, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"문승원(SSG)", contact:50, power:42, eye:48, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  // [키움]
+  { year:2024, name:"송성문(키움)", contact:85, power:80, eye:69, contactGrade:"A", powerGrade:"A", eyeGrade:"B", desc:"거포" },
+  { year:2024, name:"도슨(키움)", contact:82, power:80, eye:69, contactGrade:"A", powerGrade:"A", eyeGrade:"B", desc:"거포" },
+  { year:2024, name:"김혜성(키움)", contact:82, power:68, eye:65, contactGrade:"A", powerGrade:"B", eyeGrade:"B", desc:"교타자" },
+  { year:2024, name:"이용규(키움)", contact:72, power:51, eye:82, contactGrade:"B", powerGrade:"D", eyeGrade:"A", desc:"선구안 좋은 타자" },
+  { year:2024, name:"이주형(키움)", contact:66, power:69, eye:75, contactGrade:"B", powerGrade:"B", eyeGrade:"B", desc:"평범한 타자" },
+  { year:2024, name:"최주환(키움)", contact:64, power:68, eye:69, contactGrade:"B", powerGrade:"B", eyeGrade:"B", desc:"평범한 타자" },
+  { year:2024, name:"김건희(키움)", contact:64, power:75, eye:60, contactGrade:"B", powerGrade:"B", eyeGrade:"C", desc:"평범한 타자" },
+  { year:2024, name:"고영우(키움)", contact:64, power:51, eye:71, contactGrade:"B", powerGrade:"D", eyeGrade:"B", desc:"평범한 타자" },
+  { year:2024, name:"박수종(키움)", contact:59, power:46, eye:63, contactGrade:"C", powerGrade:"D", eyeGrade:"C", desc:"평범한 타자" },
+  { year:2024, name:"변상권(키움)", contact:63, power:58, eye:58, contactGrade:"C", powerGrade:"C", eyeGrade:"C", desc:"평범한 타자" },
+  { year:2024, name:"원성준(키움)", contact:55, power:49, eye:55, contactGrade:"C", powerGrade:"D", eyeGrade:"C", desc:"평범한 타자" },
+  { year:2024, name:"김재현(키움)", contact:61, power:45, eye:64, contactGrade:"C", powerGrade:"D", eyeGrade:"B", desc:"평범한 타자" },
+  { year:2024, name:"임병욱(키움)", contact:52, power:48, eye:50, contactGrade:"C", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"김태진(키움)", contact:54, power:48, eye:52, contactGrade:"C", powerGrade:"D", eyeGrade:"C", desc:"평범한 타자" },
+  { year:2024, name:"박성빈(키움)", contact:50, power:42, eye:48, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"이원석(키움)", contact:52, power:43, eye:61, contactGrade:"C", powerGrade:"D", eyeGrade:"C", desc:"하위 타선" },
+  { year:2024, name:"이형종(키움)", contact:51, power:48, eye:58, contactGrade:"D", powerGrade:"D", eyeGrade:"C", desc:"백업/유망주" },
+  { year:2024, name:"김동헌(키움)", contact:50, power:42, eye:48, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"주성원(키움)", contact:50, power:43, eye:50, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"이재상(키움)", contact:49, power:43, eye:51, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"하위 타선" },
+  { year:2024, name:"김병휘(키움)", contact:49, power:45, eye:54, contactGrade:"D", powerGrade:"D", eyeGrade:"C", desc:"백업/유망주" },
+  { year:2024, name:"장재영(키움)", contact:48, power:49, eye:59, contactGrade:"D", powerGrade:"D", eyeGrade:"C", desc:"평범한 타자" },
+  { year:2024, name:"김주형(키움)", contact:50, power:42, eye:48, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"김시앙(키움)", contact:50, power:42, eye:48, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"김웅빈(키움)", contact:50, power:42, eye:48, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"이승원(키움)", contact:50, power:42, eye:48, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"박주홍(키움)", contact:50, power:42, eye:48, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"임지열(키움)", contact:48, power:43, eye:50, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"김동욱(키움)", contact:45, power:40, eye:45, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"김선기(키움)", contact:45, power:40, eye:45, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  // [롯데]
+  { year:2024, name:"강성우(롯데)", contact:50, power:42, eye:48, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"이인한(롯데)", contact:50, power:42, eye:48, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"레이예스(롯데)", contact:88, power:74, eye:60, contactGrade:"S", powerGrade:"B", eyeGrade:"C", desc:"중장거리 타자" },
+  { year:2024, name:"이호준(롯데)", contact:52, power:46, eye:50, contactGrade:"C", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"황성빈(롯데)", contact:80, power:64, eye:64, contactGrade:"A", powerGrade:"B", eyeGrade:"B", desc:"교타자" },
+  { year:2024, name:"손호영(롯데)", contact:79, power:90, eye:58, contactGrade:"A", powerGrade:"S", eyeGrade:"C", desc:"공포의 중심타자" },
+  { year:2024, name:"나승엽(롯데)", contact:78, power:74, eye:80, contactGrade:"A", powerGrade:"B", eyeGrade:"A", desc:"중장거리 타자" },
+  { year:2024, name:"고승민(롯데)", contact:77, power:77, eye:62, contactGrade:"A", powerGrade:"A", eyeGrade:"C", desc:"중장거리 타자" },
+  { year:2024, name:"이정훈(롯데)", contact:57, power:46, eye:55, contactGrade:"C", powerGrade:"D", eyeGrade:"C", desc:"평범한 타자" },
+  { year:2024, name:"윤동희(롯데)", contact:73, power:75, eye:74, contactGrade:"B", powerGrade:"B", eyeGrade:"B", desc:"중장거리 타자" },
+  { year:2024, name:"전준우(롯데)", contact:73, power:83, eye:72, contactGrade:"B", powerGrade:"A", eyeGrade:"B", desc:"거포" },
+  { year:2024, name:"정훈(롯데)", contact:67, power:76, eye:72, contactGrade:"B", powerGrade:"A", eyeGrade:"B", desc:"평범한 타자" },
+  { year:2024, name:"이학주(롯데)", contact:57, power:52, eye:55, contactGrade:"C", powerGrade:"C", eyeGrade:"C", desc:"평범한 타자" },
+  { year:2024, name:"박승욱(롯데)", contact:66, power:61, eye:76, contactGrade:"B", powerGrade:"C", eyeGrade:"A", desc:"평범한 타자" },
+  { year:2024, name:"한동희(롯데)", contact:51, power:42, eye:48, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"최항(롯데)", contact:56, power:43, eye:56, contactGrade:"C", powerGrade:"D", eyeGrade:"C", desc:"하위 타선" },
+  { year:2024, name:"정보근(롯데)", contact:52, power:44, eye:49, contactGrade:"C", powerGrade:"D", eyeGrade:"D", desc:"하위 타선" },
+  { year:2024, name:"노진혁(롯데)", contact:52, power:50, eye:60, contactGrade:"C", powerGrade:"D", eyeGrade:"C", desc:"평범한 타자" },
+  { year:2024, name:"김민석(롯데)", contact:50, power:43, eye:50, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"김동혁(롯데)", contact:50, power:42, eye:48, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"김민성(롯데)", contact:50, power:44, eye:51, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"오선진(롯데)", contact:50, power:42, eye:48, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"손성빈(롯데)", contact:50, power:56, eye:56, contactGrade:"D", powerGrade:"C", eyeGrade:"C", desc:"평범한 타자" },
+  { year:2024, name:"유강남(롯데)", contact:49, power:51, eye:57, contactGrade:"D", powerGrade:"D", eyeGrade:"C", desc:"평범한 타자" },
+  { year:2024, name:"이주찬(롯데)", contact:50, power:42, eye:48, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"신윤후(롯데)", contact:50, power:42, eye:48, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"장두성(롯데)", contact:50, power:42, eye:48, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"서동욱(롯데)", contact:50, power:42, eye:48, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"강승구(롯데)", contact:50, power:42, eye:48, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
+  { year:2024, name:"강태율(롯데)", contact:50, power:42, eye:48, contactGrade:"D", powerGrade:"D", eyeGrade:"D", desc:"백업/유망주" },
 ];
 // 팀 메타(표시 이름/이모지/색)
 const TEAM_META = {
@@ -1182,17 +1492,20 @@ const TEAM_META = {
   '키움': { name:'키움 히어로즈',emoji:'🦸', color:'#570514' },
 };
 // 이름 끝의 (팀) 접미사로 그룹화
+// 팀 + 연도별로 분리 (혼합 안 함) → 키: "LG_2024" / "LG_2025"
 function buildTeams(list){
   const T = {};
   list.forEach(b=>{
     const m = b.name.match(/\(([^)]+)\)\s*$/);
-    const key = m ? m[1] : '기타';
+    const code = m ? m[1] : '기타';
+    const yr = b.year || 0;
+    const key = code + '_' + yr;
     const cleanName = b.name.replace(/\s*\([^)]+\)\s*$/, '');
     if(!T[key]){
-      const meta = TEAM_META[key] || { name:key, emoji:'⚾', color:'#444' };
-      T[key] = { name:meta.name, short:key, emoji:meta.emoji, color:meta.color, batters:[] };
+      const meta = TEAM_META[code] || { name:code, emoji:'⚾', color:'#444' };
+      T[key] = { name:meta.name, short:code, emoji:meta.emoji, color:meta.color, year:yr, batters:[] };
     }
-    T[key].batters.push(Object.assign({}, b, { name:cleanName, team:key }));
+    T[key].batters.push(Object.assign({}, b, { name:cleanName, team:code }));
   });
   return T;
 }
@@ -1632,11 +1945,12 @@ function renderHUD(){
   // 특성 표시
   const tr = TRAITS[G.trait];
   $('hudTrait').textContent = tr ? `${tr.icon}${tr.name} ⓘ` : '';
-  // 오늘의 상대 팀
+  // 오늘의 상대 팀 (연도 포함)
   const t = TEAMS[D.team];
   if(t){
+    const yr = (D.lineup && D.lineup[0] && D.lineup[0].year) ? D.lineup[0].year + ' ' : '';
     const el = $('hudTeam');
-    el.textContent = `🆚 ${t.emoji}${t.short}`;
+    el.textContent = `🆚 ${yr}${t.emoji}${t.short}`;
     el.style.color = '#fff';
   }
 }
@@ -1678,18 +1992,19 @@ function renderBatter(){
   const b = D.cur;
   $('batterFace').innerHTML = teamEmblem(b.team);   // 팀 엠블럼
   const panel = $('batterPanel');
+  const yrTag = (b.raw && b.raw.year) ? `<span class="yearTag">${b.raw.year}</span> ` : '';
   // 타자 박스 색: 평소엔 팀 컬러, 각성 시 위협적인 핏빛
   if(b.awake){
     panel.classList.add('awakened');
     panel.style.background = 'linear-gradient(135deg,#ff1f1f,#3a0000 78%)';
     panel.style.boxShadow = 'inset 0 0 0 2px #ff5a5a, 0 0 16px #ff0000aa, inset -3px -3px 0 rgba(0,0,0,.45)';
-    $('batterName').innerHTML = `<span class="awakeTag">[각성한]</span> ${b.name}`;
+    $('batterName').innerHTML = `<span class="awakeTag">[각성한]</span> ${yrTag}${b.name}`;
   }else{
     panel.classList.remove('awakened');
     const tc = (TEAM_META[b.team] || { color:'#7a1320' }).color;
     panel.style.background = `linear-gradient(135deg, ${shade(tc,0.32)}, ${shade(tc,-0.45)} 76%)`;
     panel.style.boxShadow = `inset 0 0 0 2px ${shade(tc,0.45)}99, 0 0 10px ${tc}66, inset -3px -3px 0 rgba(0,0,0,.45)`;
-    $('batterName').textContent = b.name;
+    $('batterName').innerHTML = `${yrTag}${b.name}`;
   }
   const scaleTxt = b.scale>0 ? ` ▲+${b.scale}` : '';
   $('batterDesc').textContent = '「' + b.desc + '」' + scaleTxt;
