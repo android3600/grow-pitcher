@@ -441,6 +441,14 @@ html,body{
   box-shadow:0 0 12px #2d7bff55, inset -3px -3px 0 rgba(0,0,0,.45), inset 3px 3px 0 #ffffff2a;
   color:#fff; text-shadow:2px 2px 0 #000; }
 .pitchBtns .prob{ color:#ffe9b0; }
+/* 보유 장비(아티팩트) 아이콘 바 */
+.equipBar{ display:flex; flex-wrap:wrap; gap:5px; margin-top:6px; }
+.equipBar:empty{ display:none; }
+.equipBar .equipIcon{ font-family:inherit; cursor:pointer; width:30px; height:30px; font-size:17px;
+  display:flex; align-items:center; justify-content:center;
+  background:radial-gradient(circle at 35% 30%,#3a2d10,#1a1206); border:2px solid #ffd98a;
+  border-radius:6px; box-shadow:0 0 7px #ffb33366; }
+.equipBar .equipIcon:active{ transform:translate(1px,1px); }
 /* 경기 중 아이템 사용 바 */
 .itemBar{ display:flex; gap:8px; margin-top:7px; }
 .itemBar .itemUse{ flex:1; font-size:12px; padding:8px 6px;
@@ -801,6 +809,7 @@ html,body{
             <span class="tiny" id="condText">컨디션: 보통</span>
             <span class="dischargeTag" id="dischargeTag"></span>
           </div>
+          <div class="equipBar" id="equipBar"></div>
         </div>
       </div>
     </div>
@@ -1735,6 +1744,16 @@ const SUPPLY = [
 ];
 const SUPPLY_MAP = {}; SUPPLY.forEach(s=> SUPPLY_MAP[s.key]=s);
 
+// 전설 장비(아티팩트) — 슬롯 전설 당첨 시 랜덤 1종(중복 배제), 영구 스탯
+const ARTIFACTS = {
+  glove:   { name:'명품 글러브',   icon:'🧤', con:6, vel:0, maxHp:0, desc:'제구 +6' },
+  ball:    { name:'마구 야구공',   icon:'⚾', con:0, vel:6, maxHp:0, desc:'구속 +6' },
+  cap:     { name:'행운의 모자',   icon:'🧢', con:3, vel:3, maxHp:0, desc:'구속 +3 · 제구 +3' },
+  shoes:   { name:'질주의 스파이크',icon:'👟', con:2, vel:0, maxHp:1, desc:'최대 체력 +1 · 제구 +2' },
+  uniform: { name:'전설의 유니폼', icon:'👕', con:0, vel:0, maxHp:2, desc:'최대 체력 +2' },
+};
+const ARTIFACT_KEYS = Object.keys(ARTIFACTS);
+
 // 현재 적용되는 특성 보너스
 function traitBonus(){
   const t = TRAITS[G.trait];
@@ -1766,6 +1785,7 @@ let G = {
   dayCount:0,                 // 누적 경기 일차 (타자 스케일링용)
   lastDayEff:false,           // 직전 경기 효율 마무리 여부 (고무팔)
   inv:{ heal:0, cond:0 },     // 소모 아이템 인벤토리
+  equips:[],                  // 보유 전설 장비(아티팩트) 키 목록
 };
 
 // 하루(이닝) 단위 임시 상태
@@ -1801,6 +1821,7 @@ function load(){
     const s = localStorage.getItem(SAVE_KEY);
     if(s){ G = Object.assign(G, JSON.parse(s)); }
     if(!G.inv) G.inv = { heal:0, cond:0 };   // 구버전 세이브 호환
+    if(!G.equips) G.equips = [];
   }catch(e){}
 }
 
@@ -2026,6 +2047,7 @@ function renderHUD(){
   // 투수 이름
   if($('pitNameDisp')) $('pitNameDisp').textContent = G.pitcherName || '나의 에이스';
   if($('invHeal')) renderItemBar();
+  if($('equipBar')) renderEquip();
   // 특성 표시
   const tr = TRAITS[G.trait];
   $('hudTrait').textContent = tr ? `${tr.icon}${tr.name} ⓘ` : '';
@@ -2532,9 +2554,16 @@ function rollReward(){
   const r = Math.random()*100;
   // 전설1% / 에픽4% / 레어12% / 매직33% / 일반50%
   if(r < 1){
-    return { kind:'legend', tier:'⭐전설 JACKPOT⭐', face:'👑',
-      color:'var(--gS)', jackpot:true,
-      desc:'영구 구속+1 · 제구+1 · 체력+1!' };
+    // 전설: 랜덤 장비 1종 (보유한 건 배제)
+    const avail = ARTIFACT_KEYS.filter(k=> !(G.equips||[]).includes(k));
+    if(avail.length){
+      const k = pick(avail); const a = ARTIFACTS[k];
+      return { kind:'legend', tier:'⭐전설 장비 획득!⭐', face:a.icon, color:'var(--gS)',
+        jackpot:true, artifact:k, desc:`${a.name} · ${a.desc}` };
+    }
+    // 모든 장비 보유 → 폴백(대박 재화)
+    return { kind:'legend', tier:'⭐전설 잭팟⭐', face:'💰', color:'var(--gS)',
+      jackpot:true, exp:200, gold:200, desc:'모든 장비 보유! EXP+200 · GOLD+200' };
   }else if(r < 5){
     // 에픽: 보급품 풀세트 + 재화
     return { kind:'epic', tier:'에픽!', face:'🎁', color:'var(--gB)',
@@ -2566,7 +2595,16 @@ function rollReward(){
 
 function applyReward(rw){
   if(rw.kind==='legend'){
-    G.vel += 1; G.con += 1; G.maxHp += 1;
+    if(rw.artifact){
+      if(!G.equips) G.equips = [];
+      if(!G.equips.includes(rw.artifact)){
+        const a = ARTIFACTS[rw.artifact];
+        G.equips.push(rw.artifact);
+        G.vel += a.vel||0; G.con += a.con||0; G.maxHp += a.maxHp||0;
+      }
+    }else{
+      G.exp += rw.exp||0; G.gold += rw.gold||0;   // 폴백 재화
+    }
   }else{
     let exp = rw.exp||0, gold = rw.gold||0;
     if(D.item==='owner') exp *= 2;   // 구단주의 응원: EXP 2배
@@ -2734,6 +2772,27 @@ function buySupply(key){
   SFX.reward();
   save(); renderSupply(); renderHUD();
   msg.textContent = `${s.icon} ${s.name} 구매! (보유 ${G.inv[key]})`;
+}
+// 보유 장비 아이콘 렌더 (클릭 시 설명 토스트)
+function renderEquip(){
+  const box = $('equipBar'); if(!box) return;
+  box.innerHTML = '';
+  (G.equips||[]).forEach(k=>{
+    const a = ARTIFACTS[k]; if(!a) return;
+    const el = document.createElement('button');
+    el.className = 'equipIcon'; el.textContent = a.icon; el.title = a.name;
+    el.addEventListener('click', ()=> showEquipInfo(k));
+    box.appendChild(el);
+  });
+}
+function showEquipInfo(k){
+  const a = ARTIFACTS[k]; if(!a) return;
+  let t = $('traitToast'); if(t) t.remove();
+  t = document.createElement('div'); t.id = 'traitToast';
+  t.innerHTML = `<div class="ttName">${a.icon} ${a.name}</div><div class="ttDesc">${a.desc}</div>`;
+  $('app').appendChild(t);
+  t.onclick = ()=> t.remove();
+  setTimeout(()=>{ if(t && t.parentNode) t.remove(); }, 3000);
 }
 // 경기 중 아이템 사용 바
 function renderItemBar(){
@@ -2916,7 +2975,7 @@ function startSeason(){
     exp: 0, gold: 0, weekday: 1, week: 1,
     forcedBadNext: false, created: true,
     totalOuts: 0, totalRuns: 0, itemNext: null, dayCount: 0, lastDayEff: false,
-    inv: { heal:0, cond:0 },
+    inv: { heal:0, cond:0 }, equips: [],
   };
   save();
   $('create').classList.remove('on');
@@ -2931,7 +2990,7 @@ function startSeason(){
 function hardReset(){
   if(!confirm('정말 처음부터 다시 시작할까요? (저장 데이터 삭제)')) return;
   localStorage.removeItem(SAVE_KEY);
-  G = { vel:55, con:55, maxHp:5, trait:null, pitcherName:'나의 에이스', exp:0, gold:0, weekday:1, week:1, forcedBadNext:false, created:false, totalOuts:0, totalRuns:0, itemNext:null, dayCount:0, lastDayEff:false, inv:{heal:0,cond:0} };
+  G = { vel:55, con:55, maxHp:5, trait:null, pitcherName:'나의 에이스', exp:0, gold:0, weekday:1, week:1, forcedBadNext:false, created:false, totalOuts:0, totalRuns:0, itemNext:null, dayCount:0, lastDayEff:false, inv:{heal:0,cond:0}, equips:[] };
   $('growth').classList.remove('on');
   renderHUD();
   openCreate();   // 다시 투수 생성부터
