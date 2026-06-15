@@ -441,6 +441,12 @@ html,body{
   box-shadow:0 0 12px #2d7bff55, inset -3px -3px 0 rgba(0,0,0,.45), inset 3px 3px 0 #ffffff2a;
   color:#fff; text-shadow:2px 2px 0 #000; }
 .pitchBtns .prob{ color:#ffe9b0; }
+/* 부상 표시 */
+.injuryTag{ margin-top:5px; font-size:10px; color:#ff6b6b; font-weight:bold;
+  background:rgba(120,10,10,.35); border:2px solid #802020; border-radius:4px; padding:4px 7px;
+  text-shadow:1px 1px 0 #000; }
+.injuryTag.flashOnce{ animation:injFlash .5s steps(1) 3; }
+@keyframes injFlash{ 0%{ filter:brightness(2.2); } 100%{ filter:brightness(1); } }
 /* 보유 장비(아티팩트) 아이콘 바 */
 .equipBar{ display:flex; flex-wrap:wrap; gap:5px; margin-top:6px; }
 .equipBar:empty{ display:none; }
@@ -809,6 +815,7 @@ html,body{
             <span class="tiny" id="condText">컨디션: 보통</span>
             <span class="dischargeTag" id="dischargeTag"></span>
           </div>
+          <div class="injuryTag" id="injuryTag" style="display:none;"></div>
           <div class="equipBar" id="equipBar"></div>
         </div>
       </div>
@@ -831,6 +838,7 @@ html,body{
     <div class="itemBar">
       <button class="btn itemUse" id="useHeal">🧪 회복약 <b id="invHeal">0</b></button>
       <button class="btn itemUse" id="useCond">😎 컨디션 <b id="invCond">0</b></button>
+      <button class="btn itemUse" id="useTape">🩹 치료 <b id="invTape">0</b></button>
     </div>
   </div>
 
@@ -1741,8 +1749,18 @@ const ITEM_MAP = {}; ITEM_POOL.forEach(it=> ITEM_MAP[it.key]=it);
 const SUPPLY = [
   { key:'heal', name:'회복약',     icon:'🧪', price:60, desc:'경기 중 사용: 체력 +2 (초과 회복)' },
   { key:'cond', name:'컨디션 드링크', icon:'😎', price:50, desc:'경기 중 사용: 컨디션 1단계 상승' },
+  { key:'tape', name:'스포츠 테이프', icon:'🩹', price:70, desc:'경기 중 사용: 부상 회복 1일 단축' },
 ];
 const SUPPLY_MAP = {}; SUPPLY.forEach(s=> SUPPLY_MAP[s.key]=s);
+
+// 부상 시스템 — 방전 투구 시 위험 급증, 며칠간 구속·제구 하락
+const INJ_BASE = 0.4;        // 평소 투구 부상 확률(%)
+const INJ_DISCHARGE = 4;     // 방전(체력0) 투구 부상 확률(%)
+const INJURIES = [
+  { label:'가벼운 통증', icon:'🩹', pen:4,  days:2, weight:60 },
+  { label:'부상',        icon:'🤕', pen:10, days:3, weight:30 },
+  { label:'큰 부상',     icon:'🚑', pen:18, days:4, weight:10 },
+];
 
 // 전설 장비(아티팩트) — 슬롯 전설 당첨 시 랜덤 1종(중복 배제), 영구 스탯
 const ARTIFACTS = {
@@ -1784,8 +1802,9 @@ let G = {
   itemNext:null,              // 다음 경기에 적용할 상점 아이템
   dayCount:0,                 // 누적 경기 일차 (타자 스케일링용)
   lastDayEff:false,           // 직전 경기 효율 마무리 여부 (고무팔)
-  inv:{ heal:0, cond:0 },     // 소모 아이템 인벤토리
+  inv:{ heal:0, cond:0, tape:0 },  // 소모 아이템 인벤토리
   equips:[],                  // 보유 전설 장비(아티팩트) 키 목록
+  injury:{ days:0, vel:0, con:0, label:'' },  // 부상 상태(남은 일수/패널티)
 };
 
 // 하루(이닝) 단위 임시 상태
@@ -1820,8 +1839,10 @@ function load(){
   try{
     const s = localStorage.getItem(SAVE_KEY);
     if(s){ G = Object.assign(G, JSON.parse(s)); }
-    if(!G.inv) G.inv = { heal:0, cond:0 };   // 구버전 세이브 호환
+    if(!G.inv) G.inv = { heal:0, cond:0, tape:0 };   // 구버전 세이브 호환
+    if(G.inv.tape===undefined) G.inv.tape = 0;
     if(!G.equips) G.equips = [];
+    if(!G.injury) G.injury = { days:0, vel:0, con:0, label:'' };
   }catch(e){}
 }
 
@@ -1892,6 +1913,7 @@ const SFX = {
   reward(){ tone(1318,0.08,'square',0.13); setTimeout(()=>tone(1760,0.1,'square',0.13),80); },
   jackpot(){ [523,659,784,1046,1318].forEach((f,i)=> setTimeout(()=>tone(f,0.16,'square',0.18),i*90)); },
   awaken(){ tone(160,0.35,'sawtooth',0.22,70); setTimeout(()=>tone(120,0.4,'square',0.18,60),120); },  // 불길한 경고음
+  injury(){ tone(300,0.18,'sawtooth',0.22,120); setTimeout(()=>tone(150,0.3,'sawtooth',0.2,70),100); },  // 부상 신호
 };
 
 /* 중앙 임팩트 버스트 (이모지 팝) */
@@ -1927,9 +1949,10 @@ function effStats(discharged){
   const tb = traitBonus();
   const iv = D.item==='pas' ? 15 : 0;     // 불타는 파스: 구속 +15
   const ic = D.item==='rosin' ? 15 : 0;   // 마법의 로진백: 제구 +15
+  const inj = (G.injury && G.injury.days>0) ? G.injury : { vel:0, con:0 };  // 부상 패널티
   return {
-    vel: Math.max(1, G.vel + mod - pen + tb.vel + iv),
-    con: Math.max(1, G.con + mod - pen + tb.con + ic),
+    vel: Math.max(1, G.vel + mod - pen + tb.vel + iv - inj.vel),
+    con: Math.max(1, G.con + mod - pen + tb.con + ic - inj.con),
   };
 }
 
@@ -2048,6 +2071,7 @@ function renderHUD(){
   if($('pitNameDisp')) $('pitNameDisp').textContent = G.pitcherName || '나의 에이스';
   if($('invHeal')) renderItemBar();
   if($('equipBar')) renderEquip();
+  if($('injuryTag')) renderInjury();
   // 특성 표시
   const tr = TRAITS[G.trait];
   $('hudTrait').textContent = tr ? `${tr.icon}${tr.name} ⓘ` : '';
@@ -2256,6 +2280,11 @@ function startDay(){
   save();
 
   G.dayCount = (G.dayCount||0) + 1;   // 누적 일차 (타자 스케일링)
+  // 부상 회복: 하루 경과 → 남은 일수 -1
+  if(G.injury && G.injury.days>0){
+    G.injury.days--;
+    if(G.injury.days<=0){ G.injury.vel=0; G.injury.con=0; G.injury.label=''; }
+  }
 
   // 오늘의 상대 팀 → 랜덤 팀에서 랜덤 3명
   D.team = pick(TEAM_KEYS);
@@ -2315,6 +2344,9 @@ function pitch(type){
   // 2) 체력 소모 (-1). 악마의 계약서면 무한 체력 → 소모 없음
   if(!D.infHp) D.hp = Math.max(0, D.hp - 1);
   renderHP();
+
+  // 2-1) 부상 판정 (방전 투구 시 급증, 건강할 때만)
+  rollInjury(discharged);
 
   // 3) 결과 산출 (특성 반영)
   const b = D.cur || rollBatter();
@@ -2773,6 +2805,30 @@ function buySupply(key){
   save(); renderSupply(); renderHUD();
   msg.textContent = `${s.icon} ${s.name} 구매! (보유 ${G.inv[key]})`;
 }
+// 부상 판정 (건강할 때만 신규 부상)
+function rollInjury(discharged){
+  if(G.injury && G.injury.days>0) return;        // 이미 부상 중이면 중복 없음
+  const chance = discharged ? INJ_DISCHARGE : INJ_BASE;
+  if(rand(0,100) >= chance) return;
+  const inj = weightedPick({ light:60, mid:30, big:10 });   // 가중 추첨
+  const tier = INJURIES[{light:0, mid:1, big:2}[inj]];
+  G.injury = { days: tier.days, vel: tier.pen, con: tier.pen, label: tier.label };
+  save();
+  SFX.injury(); burst(tier.icon, 'injury');
+  renderInjury(); renderProbs();
+  $('injuryTag') && ($('injuryTag').classList.add('flashOnce'));
+}
+// 부상 상태 표시
+function renderInjury(){
+  const el = $('injuryTag'); if(!el) return;
+  if(G.injury && G.injury.days>0){
+    el.style.display = 'block';
+    el.textContent = `🤕 ${G.injury.label} · 구속/제구 -${G.injury.vel} (${G.injury.days}일 남음)`;
+  }else{
+    el.style.display = 'none'; el.textContent = '';
+  }
+}
+
 // 보유 장비 아이콘 렌더 (클릭 시 설명 토스트)
 function renderEquip(){
   const box = $('equipBar'); if(!box) return;
@@ -2796,16 +2852,20 @@ function showEquipInfo(k){
 }
 // 경기 중 아이템 사용 바
 function renderItemBar(){
-  const inv = G.inv || { heal:0, cond:0 };
+  const inv = G.inv || { heal:0, cond:0, tape:0 };
   const inBattle = !D.busy && G.weekday!==0;
+  const injured = !!(G.injury && G.injury.days>0);
   $('invHeal').textContent = inv.heal||0;
   $('invCond').textContent = inv.cond||0;
+  $('invTape').textContent = inv.tape||0;
   $('useHeal').disabled = !(inBattle && (inv.heal||0) > 0);
   $('useCond').disabled = !(inBattle && (inv.cond||0) > 0);
+  $('useTape').disabled = !(inBattle && (inv.tape||0) > 0 && injured);  // 부상 중일 때만
 }
 function useItem(key){
   if(D.busy || G.weekday===0) return;
   const inv = G.inv || {}; if((inv[key]||0) <= 0) return;
+  if(key==='tape' && !(G.injury && G.injury.days>0)) return;  // 부상 없으면 사용 불가
   G.inv[key]--;
   if(key==='heal'){
     D.hp += 2;
@@ -2814,6 +2874,10 @@ function useItem(key){
     const order = ['bad','normal','good']; const i = order.indexOf(D.cond);
     if(i < 2) D.cond = order[i+1];
     SFX.reward(); burst('😎','cond');
+  }else if(key==='tape'){
+    G.injury.days = Math.max(0, G.injury.days - 1);
+    if(G.injury.days<=0){ G.injury.vel=0; G.injury.con=0; G.injury.label=''; }
+    SFX.reward(); burst('🩹','tape'); renderInjury();
   }
   save();
   renderHP(); renderPitcherStats(); renderProbs(); renderItemBar();
@@ -2975,7 +3039,7 @@ function startSeason(){
     exp: 0, gold: 0, weekday: 1, week: 1,
     forcedBadNext: false, created: true,
     totalOuts: 0, totalRuns: 0, itemNext: null, dayCount: 0, lastDayEff: false,
-    inv: { heal:0, cond:0 }, equips: [],
+    inv: { heal:0, cond:0, tape:0 }, equips: [], injury: { days:0, vel:0, con:0, label:'' },
   };
   save();
   $('create').classList.remove('on');
@@ -2990,7 +3054,7 @@ function startSeason(){
 function hardReset(){
   if(!confirm('정말 처음부터 다시 시작할까요? (저장 데이터 삭제)')) return;
   localStorage.removeItem(SAVE_KEY);
-  G = { vel:55, con:55, maxHp:5, trait:null, pitcherName:'나의 에이스', exp:0, gold:0, weekday:1, week:1, forcedBadNext:false, created:false, totalOuts:0, totalRuns:0, itemNext:null, dayCount:0, lastDayEff:false, inv:{heal:0,cond:0}, equips:[] };
+  G = { vel:55, con:55, maxHp:5, trait:null, pitcherName:'나의 에이스', exp:0, gold:0, weekday:1, week:1, forcedBadNext:false, created:false, totalOuts:0, totalRuns:0, itemNext:null, dayCount:0, lastDayEff:false, inv:{heal:0,cond:0,tape:0}, equips:[], injury:{days:0,vel:0,con:0,label:''} };
   $('growth').classList.remove('on');
   renderHUD();
   openCreate();   // 다시 투수 생성부터
@@ -3004,6 +3068,7 @@ $('btnCurve').addEventListener('click', ()=> pitch('curve'));
 $('btnWalk').addEventListener('click', intentionalWalk);
 $('useHeal').addEventListener('click', ()=> useItem('heal'));
 $('useCond').addEventListener('click', ()=> useItem('cond'));
+$('useTape').addEventListener('click', ()=> useItem('tape'));
 $('resetBtn').addEventListener('click', hardReset);
 $('nextWeekBtn').addEventListener('click', nextWeek);
 $('rollBtn').addEventListener('click', rollCharacter);
