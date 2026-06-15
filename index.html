@@ -629,6 +629,12 @@ html,body{
   color:#fff; text-shadow:2px 2px 0 #000; box-shadow:0 0 12px #ff8a3d55, inset -3px -3px 0 rgba(0,0,0,.4); }
 #startSeasonBtn{ font-size:16px; padding:13px; background:linear-gradient(#3d8bff,#103fb2);
   color:#fff; text-shadow:2px 2px 0 #000; box-shadow:0 0 12px #2d7bff55, inset -3px -3px 0 rgba(0,0,0,.4); }
+.nameRow{ width:100%; display:flex; align-items:center; gap:8px; }
+.nameRow .nameLbl{ font-size:12px; color:var(--accent); flex:0 0 auto; }
+#pitcherNameInput{ flex:1; font-family:inherit; font-size:14px; color:#fff; padding:9px 10px;
+  background:#0d1422; border:3px solid #000; border-radius:4px;
+  box-shadow:inset 0 0 0 2px #2a3450; outline:none; }
+#pitcherNameInput::placeholder{ color:#5a6478; }
 .rolling{ animation:rollShake .25s linear infinite; }
 @keyframes rollShake{ 0%,100%{ transform:translateX(0); } 25%{ transform:translateX(-3px); } 75%{ transform:translateX(3px); } }
 
@@ -738,7 +744,7 @@ html,body{
       <div class="charInfo">
         <div class="charName">
           <span class="sideTag blue">투수</span>
-          <span>나의 에이스</span>
+          <span id="pitNameDisp">나의 에이스</span>
           <span class="pitStat">통산 ⚾<b id="totalOuts">0</b> · 방어율 <b id="eraVal">0.00</b></span>
         </div>
         <div class="statBars">
@@ -852,6 +858,10 @@ html,body{
   <!-- ===== 투수 생성 화면 ===== -->
   <div id="create">
     <h2>⚾ 나의 투수 생성</h2>
+    <div class="nameRow">
+      <span class="nameLbl">투수 이름</span>
+      <input id="pitcherNameInput" type="text" maxlength="8" placeholder="나의 에이스" autocomplete="off" />
+    </div>
     <div class="createCard">
       <div class="createFace">🧢</div>
       <div class="createStats">
@@ -1678,6 +1688,7 @@ function weightedPick(w){
 let G = {
   vel:55, con:55, maxHp:5,   // 영구 스탯
   trait:null,                 // 투수 특성 (생성 시 결정)
+  pitcherName:'나의 에이스',  // 투수 이름
   exp:0, gold:0,
   weekday:1,                  // 1=화요일 시작
   week:1,
@@ -1943,6 +1954,8 @@ function renderHUD(){
   $('hudGold').textContent = comma(G.gold);
   // 투수 게이지 바 (구속/제구) — 특성·컨디션 반영된 현재 능력치
   renderPitcherStats();
+  // 투수 이름
+  if($('pitNameDisp')) $('pitNameDisp').textContent = G.pitcherName || '나의 에이스';
   // 특성 표시
   const tr = TRAITS[G.trait];
   $('hudTrait').textContent = tr ? `${tr.icon}${tr.name} ⓘ` : '';
@@ -2696,9 +2709,10 @@ function rollCharacter(){
 
 function startSeason(){
   if(!pendingCreate) return;
+  const nm = ($('pitcherNameInput').value || '').trim().slice(0,8) || '나의 에이스';
   G = {
     vel: pendingCreate.vel, con: pendingCreate.con, maxHp: 5,
-    trait: pendingCreate.trait,
+    trait: pendingCreate.trait, pitcherName: nm,
     exp: 0, gold: 0, weekday: 1, week: 1,
     forcedBadNext: false, created: true,
     totalOuts: 0, totalRuns: 0, itemNext: null, dayCount: 0, lastDayEff: false,
@@ -2716,7 +2730,7 @@ function startSeason(){
 function hardReset(){
   if(!confirm('정말 처음부터 다시 시작할까요? (저장 데이터 삭제)')) return;
   localStorage.removeItem(SAVE_KEY);
-  G = { vel:55, con:55, maxHp:5, trait:null, exp:0, gold:0, weekday:1, week:1, forcedBadNext:false, created:false, totalOuts:0, totalRuns:0, itemNext:null, dayCount:0, lastDayEff:false };
+  G = { vel:55, con:55, maxHp:5, trait:null, pitcherName:'나의 에이스', exp:0, gold:0, weekday:1, week:1, forcedBadNext:false, created:false, totalOuts:0, totalRuns:0, itemNext:null, dayCount:0, lastDayEff:false };
   $('growth').classList.remove('on');
   renderHUD();
   openCreate();   // 다시 투수 생성부터
