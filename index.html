@@ -840,10 +840,10 @@ html,body{
         </div>
         <div class="rarityTable">
           <div class="rt rt-legend"><span>전설</span><b>1%</b></div>
-          <div class="rt rt-epic"><span>에픽</span><b>5%</b></div>
-          <div class="rt rt-rare"><span>레어</span><b>10%</b></div>
-          <div class="rt rt-magic"><span>매직</span><b>30%</b></div>
-          <div class="rt rt-normal"><span>일반</span><b>54%</b></div>
+          <div class="rt rt-epic"><span>에픽</span><b>4%</b></div>
+          <div class="rt rt-rare"><span>레어</span><b>12%</b></div>
+          <div class="rt rt-magic"><span>매직</span><b>33%</b></div>
+          <div class="rt rt-normal"><span>일반</span><b>50%</b></div>
         </div>
       </div>
       <div class="slotResult" id="slotResult"></div>
@@ -2025,6 +2025,7 @@ function renderHUD(){
   renderPitcherStats();
   // 투수 이름
   if($('pitNameDisp')) $('pitNameDisp').textContent = G.pitcherName || '나의 에이스';
+  if($('invHeal')) renderItemBar();
   // 특성 표시
   const tr = TRAITS[G.trait];
   $('hudTrait').textContent = tr ? `${tr.icon}${tr.name} ⓘ` : '';
@@ -2529,22 +2530,27 @@ function runSlot(done){
 // 확률 테이블 추첨
 function rollReward(){
   const r = Math.random()*100;
-  // 전설1% / 에픽5% / 레어10% / 매직30% / 일반54%
+  // 전설1% / 에픽4% / 레어12% / 매직33% / 일반50%
   if(r < 1){
     return { kind:'legend', tier:'⭐전설 JACKPOT⭐', face:'👑',
       color:'var(--gS)', jackpot:true,
       desc:'영구 구속+1 · 제구+1 · 체력+1!' };
-  }else if(r < 6){
-    return { kind:'epic', tier:'에픽!', face:'🎖️', color:'var(--gB)',
-      desc:'EXP +100 & GOLD +100', exp:100, gold:100 };
-  }else if(r < 16){
-    const g = Math.random()<0.5;
-    return { kind:'rare', tier:'레어!', face:'💎', color:'var(--gC)',
-      desc: g?'GOLD +100':'EXP +100', exp:g?0:100, gold:g?100:0 };
-  }else if(r < 46){
-    const g = Math.random()<0.5;
-    return { kind:'magic', tier:'매직', face:'⭐', color:'var(--gA)',
-      desc: g?'GOLD +30':'EXP +30', exp:g?0:30, gold:g?30:0 };
+  }else if(r < 5){
+    // 에픽: 보급품 풀세트 + 재화
+    return { kind:'epic', tier:'에픽!', face:'🎁', color:'var(--gB)',
+      desc:'🧪회복약+1 😎컨디션+1 · EXP+50 · GOLD+50', heal:1, cond:1, exp:50, gold:50 };
+  }else if(r < 17){
+    // 레어: 택1 (재화 또는 보급품)
+    const o = pick(['gold','exp','heal','cond']);
+    const m = { gold:{desc:'GOLD +100', gold:100}, exp:{desc:'EXP +100', exp:100},
+                heal:{desc:'🧪 회복약 +1', heal:1}, cond:{desc:'😎 컨디션 드링크 +1', cond:1} }[o];
+    return Object.assign({ kind:'rare', tier:'레어!', face:'💎', color:'var(--gC)' }, m);
+  }else if(r < 50){
+    // 매직: 재화 또는 회복약
+    const o = weightedPick({ gold:40, exp:40, heal:20 });
+    const m = { gold:{desc:'GOLD +30', gold:30}, exp:{desc:'EXP +30', exp:30},
+                heal:{desc:'🧪 회복약 +1', heal:1} }[o];
+    return Object.assign({ kind:'magic', tier:'매직', face:'⭐', color:'var(--gA)' }, m);
   }else{
     // 네잎클로버: 일반 → 매직 승급
     if(D.item==='clover'){
@@ -2568,6 +2574,12 @@ function applyReward(rw){
     if(D.starBonus){ exp *= 2; gold *= 2; }  // 스타성: 연속 삼진 보상 2배
     G.exp += exp;
     G.gold += gold;
+    // 소모품 보상 지급
+    if(rw.heal || rw.cond){
+      if(!G.inv) G.inv = { heal:0, cond:0 };
+      G.inv.heal += rw.heal||0;
+      G.inv.cond += rw.cond||0;
+    }
   }
   D.starBonus = false;
   save();
