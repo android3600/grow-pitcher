@@ -845,7 +845,7 @@ html,body{
   <!-- ===== 슬롯머신 (화면 전체 레이어 팝업) ===== -->
   <div id="slot">
     <div class="slotModal">
-      <div class="slotTitle">🎰 아웃 보상 슬롯!</div>
+      <div class="slotTitle">🎰 이닝 클리어 보상!</div>
       <div class="slotMachine">
         <div class="barrel">
           <div class="reels">
@@ -1823,6 +1823,8 @@ let D = {
   pitches:0,                 // 이번 경기 투구 수 (고무팔)
   rubberActive:false,        // 고무팔 보너스 발동
   starBonus:false,           // 스타성 재화 2배 발동
+  legendBonus:0,             // 이번 이닝 클러치 전설 확률 보너스(%)
+  noBaserunner:true,         // 이번 이닝 무주자 유지(삼자범퇴) 여부
   cond:'normal',
   item:null,                 // 이번 경기에 발동 중인 상점 아이템
   infHp:false,               // 악마의 계약서: 체력 무한
@@ -2300,6 +2302,7 @@ function startDay(){
   // 특성용 경기 상태 리셋
   D.firstOutDone = false; D.lastXBH = false; D.consecK = 0;
   D.pitches = 0; D.starBonus = false;
+  D.legendBonus = 0; D.noBaserunner = true;
   D.rubberActive = (G.trait==='rubberarm' && G.lastDayEff);   // 고무팔: 직전 효율 마무리 시 발동
   buildQuests();
 
@@ -2401,6 +2404,15 @@ function resolvePitch(result, type, discharged){
     punch(false);
     if(D.starBonus){ screenFlash(); burst('🌟','star'); }
 
+    // ── 클러치 전설 확률 보너스 (아웃 적용 전 상태로 판정) ──
+    const basesLoaded = D.bases[0] && D.bases[1] && D.bases[2];
+    const isDP = (ot==='dp') || dpExtra>0;
+    const cb = D.cur;
+    const cAvg = Math.round((cb.contact + cb.power + cb.eye)/3);
+    if(cb.awake || gradeFromVal(cAvg)==='S') D.legendBonus = Math.max(D.legendBonus, 2);   // 강타자 아웃
+    if(D.outs===2 && basesLoaded) D.legendBonus = Math.max(D.legendBonus, 10);              // 2아웃 만루 탈출
+    if(D.outs===1 && basesLoaded && isDP) D.legendBonus = Math.max(D.legendBonus, 10);      // 1아웃 만루 병살
+
     D.outs += 1 + dpExtra;
     G.totalOuts += 1 + dpExtra;
     save();
@@ -2409,7 +2421,11 @@ function resolvePitch(result, type, discharged){
 
     setTimeout(()=>{
       field.classList.remove('flash');
-      runSlot(()=>{ D.outs>=3 ? endDay('success') : nextBatter(); });
+      // 슬롯은 3아웃 완료 시 한 번만
+      if(D.outs>=3){
+        if(D.noBaserunner) D.legendBonus = Math.max(D.legendBonus, 5);   // 삼자범퇴(무주자)
+        runSlot(()=> endDay('success'));
+      }else{ nextBatter(); }
     }, 650);
     return;
   }
@@ -2418,7 +2434,7 @@ function resolvePitch(result, type, discharged){
   if(result.kind === 'walk'){
     const scored = advanceRunners(1);
     D.runs += scored; G.totalRuns += scored;
-    D.consecK = 0; D.lastXBH = false;
+    D.consecK = 0; D.lastXBH = false; D.noBaserunner = false;
     if(scored>0) save();
     big.textContent = '볼넷 (4구)'; big.style.color = '#ffd23f';
     sub.textContent = scored>0 ? `🚶 출루 허용 +${scored}실점!` : '🚶 출루 허용';
@@ -2438,6 +2454,7 @@ function resolvePitch(result, type, discharged){
   if(advance===4) D.homers++;
   D.consecK = 0;
   D.lastXBH = (advance>=2);   // 유리멘탈 추적
+  D.noBaserunner = false;
 
   const hl = { 1:['안타!','🏃 단타'], 2:['2루타!','💥 깊은 타구'], 3:['3루타!','🔥 폭주!'], 4:['홈런!!','🚀 담장 넘어!'] }[advance];
   big.textContent = hl[0]; big.style.color = 'var(--fast)';
@@ -2475,7 +2492,7 @@ function intentionalWalk(){
   }
   D.bases[0] = true;              // 타자→1루
   D.runs += runs; G.totalRuns += runs;
-  D.consecK = 0; D.lastXBH = false;
+  D.consecK = 0; D.lastXBH = false; D.noBaserunner = false;
   if(runs>0) save();
 
   const field = $('field'), big = $('popBig'), sub = $('popSub');
@@ -2538,6 +2555,9 @@ const SLOT_FACES = ['🪙','💰','⭐','💎','🎖️','👑','⚡','🍀'];
 function runSlot(done){
   const slot = $('slot');
   slot.classList.add('on');
+  // 클러치 보너스 시 전설 확률 강조
+  $('slotTitle').textContent = (D.legendBonus>1)
+    ? `🔥 클러치! 전설 확률 ${D.legendBonus}%` : '🎰 이닝 클리어 보상!';
   $('slotConfirm').style.display = 'none';   // 확인 버튼 숨김(회전 중)
   $('slotResult').textContent=''; $('slotResult').className='slotResult';
   $('slotReward').textContent='';
@@ -2583,31 +2603,29 @@ function runSlot(done){
 
 // 확률 테이블 추첨
 function rollReward(){
-  const r = Math.random()*100;
-  // 전설1% / 에픽4% / 레어12% / 매직33% / 일반50%
-  if(r < 1){
-    // 전설: 랜덤 장비 1종 (보유한 건 배제)
+  // 1) 전설 판정 (기본 1%, 클러치 시 2/5/10%) — 별도 롤
+  const legendPct = Math.max(1, D.legendBonus||0);
+  if(Math.random()*100 < legendPct){
     const avail = ARTIFACT_KEYS.filter(k=> !(G.equips||[]).includes(k));
     if(avail.length){
       const k = pick(avail); const a = ARTIFACTS[k];
       return { kind:'legend', tier:'⭐전설 장비 획득!⭐', face:a.icon, color:'var(--gS)',
         jackpot:true, artifact:k, desc:`${a.name} · ${a.desc}` };
     }
-    // 모든 장비 보유 → 폴백(대박 재화)
     return { kind:'legend', tier:'⭐전설 잭팟⭐', face:'💰', color:'var(--gS)',
       jackpot:true, exp:200, gold:200, desc:'모든 장비 보유! EXP+200 · GOLD+200' };
-  }else if(r < 5){
-    // 에픽: 보급품 풀세트 + 재화
+  }
+  // 2) 나머지 등급 (에픽4 / 레어12 / 매직33 / 일반51)
+  const r = Math.random()*100;
+  if(r < 4){
     return { kind:'epic', tier:'에픽!', face:'🎁', color:'var(--gB)',
       desc:'🧪회복약+1 😎컨디션+1 · EXP+50 · GOLD+50', heal:1, cond:1, exp:50, gold:50 };
-  }else if(r < 17){
-    // 레어: 재화 위주, 보급품은 소량 확률
+  }else if(r < 16){
     const o = weightedPick({ gold:40, exp:40, heal:12, cond:8 });
     const m = { gold:{desc:'GOLD +100', gold:100}, exp:{desc:'EXP +100', exp:100},
                 heal:{desc:'🧪 회복약 +1', heal:1}, cond:{desc:'😎 컨디션 드링크 +1', cond:1} }[o];
     return Object.assign({ kind:'rare', tier:'레어!', face:'💎', color:'var(--gC)' }, m);
-  }else if(r < 50){
-    // 매직: 재화만 (소모품 제외)
+  }else if(r < 49){
     const g = Math.random()<0.5;
     return { kind:'magic', tier:'매직', face:'⭐', color:'var(--gA)',
       desc: g?'GOLD +30':'EXP +30', exp:g?0:30, gold:g?30:0 };
