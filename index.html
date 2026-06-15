@@ -1838,13 +1838,14 @@ function effStats(discharged){
 // 공통: 투수[종합] vs 타자[컨택]  → 주매치 60% + 공통매치 40% 가중
 function outProbability(type, eff, batter){
   const overall = Math.round((eff.vel + eff.con)/2); // 종합
+  const K = 1.4;   // 스탯 영향 계수 (작을수록 스탯 격차가 더 크게 반영)
   let primary;
   if(type==='fast'){
-    primary = BASE_OUT + (eff.vel - batter.power)/2;   // 구속 vs 파워
+    primary = BASE_OUT + (eff.vel - batter.power)/K;   // 구속 vs 파워
   }else{
-    primary = BASE_OUT + (eff.con - batter.eye)/2;     // 제구 vs 선구안
+    primary = BASE_OUT + (eff.con - batter.eye)/K;     // 제구 vs 선구안
   }
-  const common = BASE_OUT + (overall - batter.contact)/2; // 종합 vs 컨택
+  const common = BASE_OUT + (overall - batter.contact)/K; // 종합 vs 컨택
   const p = primary*0.6 + common*0.4;
   return clamp(Math.round(p), 5, 95);
 }
@@ -2288,7 +2289,7 @@ function resolvePitch(result, type, discharged){
 
   // ===== 안타/실점 =====
   const advance = result.advance;
-  const scored = advanceRunners(advance);
+  const scored = advanceRunners(advance, advance+1);   // 주자는 한 베이스 더 (득점 강화)
   D.runs += scored; G.totalRuns += scored;
   if(scored>0) save();
   D.hits++;
@@ -2316,13 +2317,15 @@ function finishOnBase(field){
 }
 
 // 주자 진루 처리 → 득점 수 반환
-function advanceRunners(adv){
+function advanceRunners(adv, runnerAdv){
+  // runnerAdv: 기존 주자가 진루하는 베이스 수 (안타 시 타자보다 1 더 → 득점 강화)
+  runnerAdv = runnerAdv || adv;
   let runs = 0;
   const nb = [false,false,false];
   // 기존 주자 진루
   for(let i=2;i>=0;i--){
     if(D.bases[i]){
-      const np = i + adv;
+      const np = i + runnerAdv;
       if(np>=3) runs++; else nb[np]=true;
     }
   }
