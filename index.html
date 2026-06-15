@@ -738,6 +738,113 @@ html,body{
   box-shadow:0 0 26px #000c, 0 0 18px #ffb33355, inset 0 0 0 2px #ffd98a; }
 .slotModal .slotMachine{ flex-wrap:wrap; justify-content:center; gap:8px; }
 .slotModal .slotTitle{ font-size:15px; }
+
+/* ============================================================
+   ★★ THEME 2.0 — NEON NIGHT ARCADE (전면 디자인 개편) ★★
+   ============================================================ */
+:root{
+  --neon-cy:#3ae7ff; --neon-mg:#ff3d8b; --neon-go:#ffd23f;
+  --glass:rgba(20,22,44,.62); --glassb:rgba(255,255,255,.13);
+}
+/* 밤 스타디움 배경 + 코너 스포트라이트 */
+#app{
+  background:
+    radial-gradient(130% 55% at 15% -10%, rgba(58,231,255,.18), transparent 55%),
+    radial-gradient(130% 55% at 92% -4%, rgba(255,61,139,.20), transparent 55%),
+    radial-gradient(100% 50% at 50% 108%, rgba(120,80,255,.16), transparent 60%),
+    linear-gradient(180deg,#12132e 0%, #0c0d20 42%, #07070f 100%);
+  border-left:1px solid rgba(255,255,255,.06);
+  border-right:1px solid rgba(255,255,255,.06);
+  box-shadow:0 0 70px rgba(0,0,0,.55) inset;
+}
+/* CRT 스캔라인 질감 (클릭 통과) */
+#app::after{
+  content:""; position:absolute; inset:0; z-index:40; pointer-events:none; opacity:.35;
+  background:repeating-linear-gradient(0deg, rgba(0,0,0,.16) 0 1px, transparent 1px 3px);
+  mix-blend-mode:overlay;
+}
+
+/* ── 글래스 패널 공통 ── */
+#scorebar, #resbar{
+  background:linear-gradient(180deg, rgba(22,24,48,.92), rgba(10,11,26,.96));
+  border-bottom:1px solid var(--glassb);
+}
+#scorebar .sbDay{ color:var(--neon-cy); text-shadow:0 0 8px rgba(58,231,255,.5); }
+
+.basePanel{
+  background:linear-gradient(160deg, rgba(16,40,28,.8), rgba(8,20,14,.85)) !important;
+  border:1px solid rgba(92,255,154,.3) !important;
+  box-shadow:0 0 14px rgba(46,213,115,.18), inset 0 1px 0 rgba(255,255,255,.08) !important;
+  border-radius:10px !important;
+}
+.nextPanel{
+  background:linear-gradient(160deg, rgba(28,30,58,.7), rgba(14,15,32,.8));
+  border:1px solid var(--glassb); border-radius:10px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.06);
+}
+.npTitle{ color:var(--neon-cy); text-shadow:0 0 8px rgba(58,231,255,.45); }
+.npCard{ border:1px solid rgba(255,255,255,.1); border-radius:8px;
+  background:linear-gradient(160deg,#1b1f3a,#11132440); }
+.npCard.onDeck{ box-shadow:0 0 12px rgba(255,45,139,.5); border-color:rgba(255,61,139,.6); }
+
+/* 캐릭터 패널 — 글래스 + 네온 테두리(블루=투수는 CSS, 레드=타자는 JS 인라인 유지) */
+.charPanel{ border-radius:14px !important; border:1px solid var(--glassb) !important; }
+#pitcherArea .charPanel.blue{
+  background:linear-gradient(150deg, rgba(20,46,92,.78), rgba(8,16,40,.85)) !important;
+  box-shadow:0 6px 22px rgba(0,0,0,.45), 0 0 18px rgba(58,231,255,.22),
+             inset 0 1px 0 rgba(255,255,255,.1) !important;
+}
+.sideTag{ border:none !important; border-radius:6px; box-shadow:0 0 10px currentColor; }
+.sideTag.red{ background:linear-gradient(#ff4d6d,#c11030) !important; }
+.sideTag.blue{ background:linear-gradient(#3a9bff,#1747c8) !important; }
+.tierTag{ border:none !important; border-radius:6px; box-shadow:0 0 8px rgba(0,0,0,.5); }
+
+/* 게이지 바 — 광택 + 라운드 */
+.sTrack{ border:none !important; border-radius:6px; background:rgba(0,0,0,.45) !important;
+  box-shadow:inset 0 1px 2px rgba(0,0,0,.6), inset 0 0 0 1px rgba(255,255,255,.06) !important; overflow:hidden; }
+.sFill{ border-radius:6px; position:relative; box-shadow:0 0 10px rgba(255,255,255,.18); }
+.sFill::after{ content:""; position:absolute; inset:0 0 50% 0; background:linear-gradient(rgba(255,255,255,.35),transparent); border-radius:6px 6px 0 0; }
+.hpCell{ border:none !important; border-radius:3px; box-shadow:inset 0 0 0 1px rgba(0,0,0,.5); }
+
+/* ── 버튼: 광택 네온 ── */
+.btn{ border:1px solid rgba(255,255,255,.14) !important; border-radius:10px;
+  box-shadow:0 4px 0 rgba(0,0,0,.45), 0 6px 16px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.2);
+  transition:transform .07s, box-shadow .07s; }
+.btn:active{ transform:translateY(3px); box-shadow:0 1px 0 rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.15); }
+.pitchBtns .fast{ background:linear-gradient(#ff6a4d,#d11030) !important; box-shadow:0 4px 0 #6a0a18, 0 0 20px rgba(255,61,80,.45), inset 0 1px 0 rgba(255,255,255,.3) !important; }
+.pitchBtns .curve{ background:linear-gradient(#3aa0ff,#1440c8) !important; box-shadow:0 4px 0 #0a2470, 0 0 20px rgba(58,160,255,.45), inset 0 1px 0 rgba(255,255,255,.3) !important; }
+.pitchBtns .walk{ background:linear-gradient(#8b90a0,#3a3e52) !important; box-shadow:0 4px 0 #1d2030, inset 0 1px 0 rgba(255,255,255,.2) !important; }
+.itemBar .itemUse{ background:linear-gradient(#37c46b,#147a3a) !important; box-shadow:0 4px 0 #0b3a1e, 0 0 14px rgba(46,213,115,.35), inset 0 1px 0 rgba(255,255,255,.25) !important; }
+#resetBtn{ box-shadow:0 2px 0 rgba(0,0,0,.4) !important; }
+
+/* 필드 — 네온 잔디 + 라운드 */
+#field{ border-radius:14px !important; border:1px solid var(--glassb) !important;
+  box-shadow:0 8px 26px rgba(0,0,0,.5), inset 0 0 40px rgba(0,0,0,.5), 0 0 18px rgba(120,80,255,.15) !important;
+  background:
+    radial-gradient(120% 80% at 50% 120%, rgba(46,213,115,.18), transparent 60%),
+    linear-gradient(180deg,#3a1c5e 0 16%, #5b2a6e 16% 30%, #103a1e 30% 100%) !important; }
+
+/* VS 배지 네온 */
+#vsBadge{ color:var(--neon-go); text-shadow:0 0 14px var(--neon-mg), 3px 3px 0 #000, -2px -2px 0 #6a0a30; }
+
+/* 슬롯 / 모달 — 글래스 골드 */
+.slotModal, .traitModalCard, .confirmCard{
+  background:linear-gradient(160deg, rgba(34,28,18,.92), rgba(16,12,22,.94)) !important;
+  backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+  border-radius:16px !important; }
+#slotTitle{ color:var(--neon-go); text-shadow:0 0 12px rgba(255,210,63,.6); }
+.reel{ border-radius:8px !important; }
+
+/* 월요일/생성 화면 헤더 네온 */
+#growth h2, #create h2, .tmHead{ text-shadow:0 0 14px rgba(255,210,63,.5); }
+.shopHead{ color:var(--neon-go); }
+.trainCard, .shopCard, .supplyCard, #growth .box, .createCard, .traitBox{
+  border-radius:12px !important; border:1px solid var(--glassb) !important; }
+
+/* 자원바 네온 텍스트 */
+#resbar .exp{ color:var(--neon-cy); text-shadow:0 0 6px rgba(58,231,255,.4); }
+#resbar .gold{ color:var(--neon-go); text-shadow:0 0 6px rgba(255,210,63,.4); }
+#hudTrait{ color:var(--neon-mg) !important; }
 </style>
 </head>
 <body>
