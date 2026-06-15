@@ -2762,18 +2762,22 @@ function renderBatter(){
   renderProbs();
 }
 
-// NEXT 타자 예고 (오늘 라인업 3명, 현재 타자 강조)
+// NEXT 타자 예고 (현재 타자 + 다음 2명 슬라이딩 윈도우, 현재 타자 강조)
 function renderNext(){
   const box = $('nextCards');
   box.innerHTML = '';
-  D.lineup.forEach((b,i)=>{
+  const n = D.lineup.length;
+  if(!n) return;
+  const cur = D.batterIdx % n;
+  for(let k=0; k<3; k++){
+    const b = D.lineup[(cur + k) % n];
     const tier = gradeFromVal(Math.round((b.contact + b.power + b.eye)/3));
     const card = document.createElement('div');
-    card.className = 'npCard' + (i === (D.batterIdx % D.lineup.length) ? ' onDeck' : '');
+    card.className = 'npCard' + (k === 0 ? ' onDeck' : '');
     card.innerHTML = `<div class="npName">${b.name}</div>`
       + `<div class="npGrade" style="color:${GRADE_COLOR[tier]}">${tier}</div>`;
     box.appendChild(card);
-  });
+  }
 }
 
 /* ===== 퀘스트 (현재 비활성) ===== */
@@ -2906,9 +2910,9 @@ function startDay(){
     if(G.injury.days<=0){ G.injury.vel=0; G.injury.con=0; G.injury.label=''; }
   }
 
-  // 오늘의 상대 팀 → 랜덤 팀에서 랜덤 3명
+  // 오늘의 상대 팀 → 랜덤 팀에서 랜덤 9명(정규 타순) 샘플 (반복감 완화)
   D.team = pick(TEAM_KEYS);
-  D.lineup = sampleN(TEAMS[D.team].batters, 3);
+  D.lineup = sampleN(TEAMS[D.team].batters, 9);
   D.batterIdx = 0;
   rollBatter();   // 첫 타자 (스케일링·각성 결정)
 
@@ -2935,7 +2939,7 @@ function startDay(){
   renderQuests();
 
   const t = TEAMS[D.team];
-  const names = D.lineup.map(b=>b.name).join(' · ');
+  const names = D.lineup.slice(0,3).map(b=>b.name).join(' · ') + (D.lineup.length>3 ? ' …' : '');
   const it = ITEM_MAP[D.item];
   const desc = it ? `🎁 ${it.icon}${it.name} 발동!` : `상대 타자: ${names}`;
   showBanner(`${t.emoji} 오늘의 상대: ${t.name}`, desc, 1600, ()=>{
