@@ -629,6 +629,21 @@ html,body{
   color:#fff; text-shadow:2px 2px 0 #000; box-shadow:0 0 12px #ff8a3d55, inset -3px -3px 0 rgba(0,0,0,.4); }
 #startSeasonBtn{ font-size:16px; padding:13px; background:linear-gradient(#3d8bff,#103fb2);
   color:#fff; text-shadow:2px 2px 0 #000; box-shadow:0 0 12px #2d7bff55, inset -3px -3px 0 rgba(0,0,0,.4); }
+/* 특성 도감 모달 */
+#traitModal{ position:absolute; inset:0; z-index:15; display:none;
+  align-items:center; justify-content:center; padding:16px; background:rgba(3,5,10,.88); }
+#traitModal.on{ display:flex; }
+.traitModalCard{ width:100%; max-width:410px; max-height:90%; display:flex; flex-direction:column;
+  gap:8px; padding:14px; background:linear-gradient(#1a1426,#0d0a16);
+  border:4px solid #6b4e16; border-radius:8px; box-shadow:0 0 22px #000c, inset 0 0 0 2px #ffd98a55; }
+.tmHead{ font-size:16px; color:var(--accent); text-align:center; }
+#traitModalList{ flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:5px; padding-right:2px; }
+.tmItem{ display:flex; align-items:flex-start; gap:9px; padding:7px 9px;
+  background:#161020; border:2px solid #000; border-radius:4px; box-shadow:inset 0 0 0 1px #3a2f55; }
+.tmItem .tmIco{ font-size:22px; flex:0 0 auto; }
+.tmItem .tmName{ font-size:12px; color:#ffd23f; }
+.tmItem .tmDesc{ font-size:10px; color:#cdd6e6; margin-top:2px; line-height:1.35; }
+#traitModalClose{ font-size:14px; padding:10px; }
 .nameRow{ width:100%; display:flex; align-items:center; gap:8px; }
 .nameRow .nameLbl{ font-size:12px; color:var(--accent); flex:0 0 auto; }
 #pitcherNameInput{ flex:1; font-family:inherit; font-size:14px; color:#fff; padding:9px 10px;
@@ -881,6 +896,16 @@ html,body{
     <div class="createBtns">
       <button class="btn" id="rollBtn">🎲 주사위 굴리기</button>
       <button class="btn" id="startSeasonBtn" disabled>시즌 시작 ▶</button>
+      <button class="btn" id="traitListBtn">📖 투수 특성 보기</button>
+    </div>
+  </div>
+
+  <!-- ===== 특성 도감 모달 ===== -->
+  <div id="traitModal">
+    <div class="traitModalCard">
+      <div class="tmHead">📖 투수 특성 목록</div>
+      <div id="traitModalList"></div>
+      <button class="btn" id="traitModalClose">닫기</button>
     </div>
   </div>
 
@@ -2490,6 +2515,21 @@ function showTraitInfo(){
   setTimeout(()=>{ if(t && t.parentNode) t.remove(); }, 3000);
 }
 
+// 특성 도감 모달 (전체 17종 목록)
+function openTraitModal(){
+  const box = $('traitModalList');
+  box.innerHTML = '';
+  TRAIT_KEYS.forEach(k=>{
+    const t = TRAITS[k];
+    const row = document.createElement('div');
+    row.className = 'tmItem';
+    row.innerHTML = `<div class="tmIco">${t.icon}</div>`
+      + `<div><div class="tmName">${t.name}</div><div class="tmDesc">${t.desc}</div></div>`;
+    box.appendChild(row);
+  });
+  $('traitModal').classList.add('on');
+}
+
 // 중앙 배너 표시 (제목/설명/표시시간/콜백)
 function showBanner(title, desc, dur, cb){
   const banner=$('banner');
@@ -2746,6 +2786,9 @@ $('nextWeekBtn').addEventListener('click', nextWeek);
 $('rollBtn').addEventListener('click', rollCharacter);
 $('startSeasonBtn').addEventListener('click', startSeason);
 $('hudTrait').addEventListener('click', showTraitInfo);
+$('traitListBtn').addEventListener('click', openTraitModal);
+$('traitModalClose').addEventListener('click', ()=> $('traitModal').classList.remove('on'));
+$('traitModal').addEventListener('click', (e)=>{ if(e.target.id==='traitModal') $('traitModal').classList.remove('on'); });
 document.querySelectorAll('[data-buy]').forEach(b=>{
   b.addEventListener('click', ()=> buy(b.getAttribute('data-buy')));
 });
