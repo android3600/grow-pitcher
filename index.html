@@ -2661,9 +2661,9 @@ function currentBatter(){ return D.lineup[D.batterIdx % D.lineup.length]; }
 // 일차에 따른 타자 계단식 스케일링 보너스
 function dayScaleBonus(){
   const d = G.dayCount || 0;
-  if(d>=101) return 20;
-  if(d>=61)  return 10;
-  if(d>=31)  return 5;
+  if(d>=101) return 14;
+  if(d>=61)  return 8;
+  if(d>=31)  return 4;
   return 0;
 }
 // 현재 타석 타자 생성 (스케일링 + 5% 각성)
