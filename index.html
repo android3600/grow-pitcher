@@ -2397,7 +2397,7 @@ function weightedPick(w){
 
 // 영구 상태(저장 대상)
 let G = {
-  vel:55, con:55, maxHp:5,   // 영구 스탯
+  vel:55, con:55, maxHp:6,   // 영구 스탯
   trait:null,                 // 투수 특성 (생성 시 결정)
   pitcherName:'나의 에이스',  // 투수 이름
   exp:0, gold:0,
@@ -3776,7 +3776,7 @@ function askConfirm(msg, onYes){
 function hardReset(){
   askConfirm('정말 처음부터 다시 시작할까요?\n(저장 데이터 삭제)', ()=>{
     localStorage.removeItem(SAVE_KEY);
-    G = { vel:55, con:55, maxHp:5, trait:null, pitcherName:'나의 에이스', exp:0, gold:0, score:0, weekday:1, week:1, forcedBadNext:false, created:false, totalOuts:0, totalRuns:0, itemNext:null, dayCount:0, lastDayEff:false, inv:{heal:0,cond:0,tape:0}, equips:[], injury:{days:0,vel:0,con:0,label:''} };
+    G = { vel:55, con:55, maxHp:6, trait:null, pitcherName:'나의 에이스', exp:0, gold:0, score:0, weekday:1, week:1, forcedBadNext:false, created:false, totalOuts:0, totalRuns:0, itemNext:null, dayCount:0, lastDayEff:false, inv:{heal:0,cond:0,tape:0}, equips:[], injury:{days:0,vel:0,con:0,label:''} };
     // 진행 중 오버레이 정리
     ['growth','slot','dpCine','traitModal','shopModal'].forEach(id=> $(id) && $(id).classList.remove('on'));
     D.busy = false;
