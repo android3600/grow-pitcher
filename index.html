@@ -2455,6 +2455,7 @@ function load(){
     if(!G.equips) G.equips = [];
     if(!G.injury) G.injury = { days:0, vel:0, con:0, label:'' };
     if(G.score===undefined) G.score = 0;   // 점수 시스템 호환
+    if(G.maxHp < 6) G.maxHp = 6;          // 기본 체력 상향 호환
   }catch(e){}
 }
 
