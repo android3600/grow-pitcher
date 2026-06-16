@@ -2285,7 +2285,7 @@ function faceOf(b){
 const WEEKDAYS = ['월','화','수','목','금','토','일'];
 
 // 훈련 비용
-const COST = { vel:80, con:80, hp:120 };
+const COST = { vel:60, con:60, hp:90 };
 
 // 기본/방전/컨디션 상수
 const BASE_OUT = 70;          // 기본 아웃 확률(%) — 중립 스탯에서 70% 아웃
@@ -3329,7 +3329,7 @@ function rollReward(){
     }
     const g = Math.random()<0.5;
     return { kind:'normal', tier:'일반', face: g?'🪙':'📘', color:'var(--dim)',
-      desc: g?'GOLD +10':'EXP +10', exp:g?0:10, gold:g?10:0 };
+      desc: g?'GOLD +20':'EXP +20', exp:g?0:20, gold:g?20:0 };
   }
 }
 
@@ -3442,7 +3442,13 @@ function endDay(reason){
   let t, d;
   if(reason==='hook'){
     t = '🚨 조기 강판!';
-    d = '3실점… 내일은 컨디션 「나쁨」';
+    const consolation = D.outs * 5;
+    if(consolation > 0){
+      G.exp = (G.exp||0) + consolation;
+      d = `3실점… 내일은 컨디션 「나쁨」 · 위로 EXP +${consolation}`;
+    } else {
+      d = '3실점… 내일은 컨디션 「나쁨」';
+    }
     G.forcedBadNext = true;
   }else{
     t = '✅ 이닝 종료 (3아웃)';
