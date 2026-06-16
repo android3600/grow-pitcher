@@ -770,6 +770,23 @@ html,body{
   border-bottom:1px solid var(--glassb);
 }
 #scorebar .sbDay{ color:var(--neon-cy); text-shadow:0 0 8px rgba(58,231,255,.5); }
+/* 아케이드 SCORE 전광판 */
+#scorebar .sbScore{ position:relative; margin-left:10px; padding:2px 9px; border-radius:8px;
+  font-size:11px; letter-spacing:.5px; color:#ffd23f;
+  background:linear-gradient(180deg, rgba(60,44,10,.55), rgba(28,20,4,.7));
+  border:1px solid rgba(255,210,63,.45); box-shadow:0 0 10px rgba(255,210,63,.22), inset 0 1px 0 rgba(255,255,255,.1); }
+#scorebar .sbScore b{ font-size:15px; font-weight:800; color:#ffe88a;
+  text-shadow:0 0 8px rgba(255,210,63,.7); display:inline-block; }
+#scorebar .sbScore b.pop{ animation:scorePop .42s cubic-bezier(.3,1.5,.5,1); }
+@keyframes scorePop{ 0%{ transform:scale(1); } 35%{ transform:scale(1.55); color:#fff;
+  text-shadow:0 0 16px rgba(255,235,138,1); } 100%{ transform:scale(1); } }
+/* 점수 획득 플로팅 텍스트 */
+.scoreFloat{ position:absolute; left:50%; top:-2px; transform:translateX(-50%);
+  font-size:14px; font-weight:800; pointer-events:none; white-space:nowrap;
+  text-shadow:0 0 10px currentColor, 0 1px 2px #000; animation:scoreFloatUp .85s ease-out forwards; z-index:40; }
+@keyframes scoreFloatUp{ 0%{ opacity:0; transform:translate(-50%,4px) scale(.7); }
+  20%{ opacity:1; transform:translate(-50%,-8px) scale(1.1); }
+  100%{ opacity:0; transform:translate(-50%,-26px) scale(1); } }
 
 .basePanel{
   background:linear-gradient(160deg, rgba(16,40,28,.8), rgba(8,20,14,.85)) !important;
@@ -866,6 +883,7 @@ html,body{
   <!-- ===== 상단 슬림 전광판 ===== -->
   <div id="scorebar">
     <span class="sbDay" id="hudDay">1주차 화요일</span>
+    <span class="sbScore">SCORE <b id="hudScore">0</b></span>
     <span class="sbSp"></span>
     <span class="sbTeam" id="hudTeam">🆚 --</span>
   </div>
@@ -2383,6 +2401,7 @@ let G = {
   trait:null,                 // 투수 특성 (생성 시 결정)
   pitcherName:'나의 에이스',  // 투수 이름
   exp:0, gold:0,
+  score:0,                    // 통산 점수(아웃 잡을 때 등급별 합산, 리셋 없음)
   weekday:1,                  // 1=화요일 시작
   week:1,
   forcedBadNext:false,        // 다음날 강제 '나쁨'(조기강판 패널티)
@@ -2435,6 +2454,7 @@ function load(){
     if(G.inv.tape===undefined) G.inv.tape = 0;
     if(!G.equips) G.equips = [];
     if(!G.injury) G.injury = { days:0, vel:0, con:0, label:'' };
+    if(G.score===undefined) G.score = 0;   // 점수 시스템 호환
   }catch(e){}
 }
 
@@ -2507,6 +2527,7 @@ const SFX = {
   awaken(){ tone(160,0.35,'sawtooth',0.22,70); setTimeout(()=>tone(120,0.4,'square',0.18,60),120); },  // 불길한 경고음
   injury(){ tone(300,0.18,'sawtooth',0.22,120); setTimeout(()=>tone(150,0.3,'sawtooth',0.2,70),100); },  // 부상 신호
   dp(){ tone(90,0.5,'sine',0.3,55); noise(0.06,0.3,2500,true); setTimeout(()=>noise(0.06,0.3,2500,true),320); },  // 병살 임팩트
+  score(big){ tone(1046,0.07,'square',0.12,1320); setTimeout(()=>tone(big?1760:1568,0.1,'square',0.13),70); if(big) setTimeout(()=>tone(2093,0.12,'triangle',0.12),150); },  // 점수 획득 코인음
 };
 
 /* 중앙 임팩트 버스트 (이모지 팝) */
@@ -2666,12 +2687,39 @@ function rollBatter(){
   return cur;
 }
 
+// ===== 점수 시스템 =====
+const SCORE_BY_GRADE = { D:10, C:20, B:30, A:50, S:80 };   // 등급별 아웃 1개 점수
+const AWAKE_SCORE = 150;                                    // 각성 타자 보너스 점수
+// 아웃 잡은 타자 등급으로 점수 합산 + 전광판 팝/플로팅 연출
+function addScore(tier, awake, outs){
+  const per = awake ? AWAKE_SCORE : (SCORE_BY_GRADE[tier] || 10);
+  const gain = per * Math.max(1, outs||1);
+  G.score = (G.score||0) + gain;
+  const big = awake || tier==='S' || tier==='A';
+  const el = $('hudScore');
+  if(el){
+    el.textContent = comma(G.score);
+    el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop');
+    const wrap = el.parentElement;   // .sbScore (position:relative)
+    if(wrap){
+      const f = document.createElement('span');
+      f.className = 'scoreFloat';
+      f.style.color = awake ? '#ff4d6d' : (GRADE_COLOR[tier] || '#ffd23f');
+      f.textContent = (awake ? '각성 +' : '+') + comma(gain);
+      wrap.appendChild(f);
+      setTimeout(()=>f.remove(), 880);
+    }
+  }
+  SFX.score && SFX.score(big);
+}
+
 function renderHUD(){
   $('hudDay').textContent = `${G.dayCount||0}일차 · ${WEEKDAYS[G.weekday]}요일`;
   $('hudVel').textContent = G.vel;
   $('hudCon').textContent = G.con;
   $('hudExp').textContent = comma(G.exp);
   $('hudGold').textContent = comma(G.gold);
+  if($('hudScore')) $('hudScore').textContent = comma(G.score||0);
   // 투수 게이지 바 (구속/제구) — 특성·컨디션 반영된 현재 능력치
   renderPitcherStats();
   // 투수 이름
@@ -3050,6 +3098,7 @@ function resolvePitch(result, type, discharged){
 
     D.outs += 1 + dpExtra;
     G.totalOuts += 1 + dpExtra;
+    addScore(gradeFromVal(cAvg), cb.awake, 1 + dpExtra);   // 등급별 점수 합산 + 연출
     save();
     renderScoreboard();
     updateQuests();
@@ -3696,7 +3745,7 @@ function startSeason(){
   G = {
     vel: pendingCreate.vel, con: pendingCreate.con, maxHp: 5,
     trait: pendingCreate.trait, pitcherName: nm,
-    exp: 0, gold: 0, weekday: 1, week: 1,
+    exp: 0, gold: 0, score: 0, weekday: 1, week: 1,
     forcedBadNext: false, created: true,
     totalOuts: 0, totalRuns: 0, itemNext: null, dayCount: 0, lastDayEff: false,
     inv: { heal:0, cond:0, tape:0 }, equips: [], injury: { days:0, vel:0, con:0, label:'' },
@@ -3721,7 +3770,7 @@ function askConfirm(msg, onYes){
 function hardReset(){
   askConfirm('정말 처음부터 다시 시작할까요?\n(저장 데이터 삭제)', ()=>{
     localStorage.removeItem(SAVE_KEY);
-    G = { vel:55, con:55, maxHp:5, trait:null, pitcherName:'나의 에이스', exp:0, gold:0, weekday:1, week:1, forcedBadNext:false, created:false, totalOuts:0, totalRuns:0, itemNext:null, dayCount:0, lastDayEff:false, inv:{heal:0,cond:0,tape:0}, equips:[], injury:{days:0,vel:0,con:0,label:''} };
+    G = { vel:55, con:55, maxHp:5, trait:null, pitcherName:'나의 에이스', exp:0, gold:0, score:0, weekday:1, week:1, forcedBadNext:false, created:false, totalOuts:0, totalRuns:0, itemNext:null, dayCount:0, lastDayEff:false, inv:{heal:0,cond:0,tape:0}, equips:[], injury:{days:0,vel:0,con:0,label:''} };
     // 진행 중 오버레이 정리
     ['growth','slot','dpCine','traitModal','shopModal'].forEach(id=> $(id) && $(id).classList.remove('on'));
     D.busy = false;
